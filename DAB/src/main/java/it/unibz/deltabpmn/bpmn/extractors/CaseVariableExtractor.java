@@ -24,6 +24,7 @@ public final class CaseVariableExtractor {
             String documentationText = documentation.getTextContent();
             for (String varDeclaration : documentationText.split(";")) {
                 String[] declarationElements = varDeclaration.split(":");
+                //ToDo: manage system sorts correctly!
                 Sort varSort = dataSchema.newSort(declarationElements[1].trim());
                 //ToDo: add a way to account for multiple-case variables
                 dataSchema.newCaseVariable(declarationElements[0].trim(), varSort, true);

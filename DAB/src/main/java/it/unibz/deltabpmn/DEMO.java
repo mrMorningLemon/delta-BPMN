@@ -45,7 +45,7 @@ public class DEMO {
 
         System.out.println(decideEligible.getMCMTTranslation());
 
-
+        example(dataSchema);
     }
 
 
@@ -117,7 +117,8 @@ public class DEMO {
         //System.out.println(check_qual.getMCMTTranslation());
 
         BulkUpdate markE = new BulkUpdate("MarkE", new ConjunctiveSelectQuery(), application, dataSchema);
-        markE.root.addGreaterThanCondition(application.getAttributeByIndex(2), 80);
+        markE.root.addGreaterThanCondition(application.getAttributeByIndex(2), 80)
+                .addLessThanCondition(application.getAttributeByIndex(2),100);
         markE.root.addTrueChild().updateAttributeValue(application.getAttributeByIndex(3), "True");
         markE.root.addFalseChild().updateAttributeValue(application.getAttributeByIndex(3), "False");
 

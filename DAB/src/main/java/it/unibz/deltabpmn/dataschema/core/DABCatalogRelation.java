@@ -27,7 +27,7 @@ class DABCatalogRelation implements CatalogRelation {
      * Catalog relation constructor. A catalog relation is originally defined by its name and
      * a (reference to a) data schema. All attributes and the Primary Key should be added later on.
      *
-     * @param name   A relation name.
+     * @param name       A relation name.
      * @param dataSchema A reference to the data schema.
      */
     public DABCatalogRelation(String name, DataSchema dataSchema) {
@@ -123,12 +123,17 @@ class DABCatalogRelation implements CatalogRelation {
 
     @Override
     /**
-     * Method for returning a particular attribute of the Catalog relation given the index.
+     * Method for returning a particular attribute of the Repository relation given the index (enumeration starts from 0).
      * @param index of the attribute.
-     * @return The attribute.
-     */
+     * @return The attribute.*/
     public Attribute getAttributeByIndex(int index) {
         return this.attributes.get(index);
+    }
+
+
+    @Override
+    public int getAttributesIndex(Attribute attr) {
+        return this.attributes.indexOf(attr);
     }
 
     /**

@@ -160,7 +160,7 @@ public class CamundaModelReader {
                     //ToDo: do we always force a condition in the gate for a XOR split? if there's none, we can put TRUE, but this is not very "sustainable"
                     if (extensionElements == null)
                         throw new Exception("The condition of the XOR split " + currentNode.getId() + " is empty!");
-                    stackBlocks.push(new XORSplitGate(currentNode.getId(), GatewayConditionParser.extractXORCondition(extensionElements, this.dataSchema)));//remember where did we start forking
+                    stackBlocks.push(new XORSplitGate(currentNode.getId(), GatewayConditionParser.parseXORCondition(extensionElements, this.dataSchema)));//remember where did we start forking
 
                     //ToDo: add visited start gates for detecting loops; if we saw that gate twice, then it's a loop
                 }

@@ -50,12 +50,16 @@ class DABRepositoryRelation implements RepositoryRelation {
 //
     @Override
     /**
-     * Method for returning a particular attribute of the Repository relation given the index.
+     * Method for returning a particular attribute of the Repository relation given the index (enumeration starts from 0).
      * @param index of the attribute.
      * @return The attribute.*/
     public Attribute getAttributeByIndex(int index) {
-        return attributes.get(index);
+        return this.attributes.get(index);
     }
+
+
+    @Override
+    public int getAttributesIndex(Attribute attr){return this.attributes.indexOf(attr);}
 
     @Override
     /**

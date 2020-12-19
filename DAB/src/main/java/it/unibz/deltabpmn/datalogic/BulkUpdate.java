@@ -75,7 +75,6 @@ public class BulkUpdate implements ComplexTransition {
     }
 
 
-
     //ToDo: rename this method
 
     /**
@@ -84,7 +83,7 @@ public class BulkUpdate implements ComplexTransition {
      *
      * @return The string with case variables.
      */
-    public String globalStatic() {
+    private String globalStatic() {
         String result = "";
         for (CaseVariable caseVar : dataSchema.getCaseVariables()) {
             if (caseVar == this.toSet)
@@ -142,12 +141,11 @@ public class BulkUpdate implements ComplexTransition {
             this.numCases++;
             return;
         }
-        processTree(node.true_node, condition + node.getCondition());
+        processTree(node.getTrueNode(), condition + node.getCondition());
         for (String s : node.getFalseList()) {
-            processTree(node.false_node, condition + s);
+            processTree(node.getFalseNode(), condition + s);
         }
     }
-
 
     /**
      * @return The name of the conditional update.
@@ -155,7 +153,6 @@ public class BulkUpdate implements ComplexTransition {
     public String getName() {
         return this.name;
     }
-
 
     @Override
     /**

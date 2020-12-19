@@ -19,7 +19,7 @@ public class GatewayConditionParser {
     //get all condition expressions from flow elements
 
 
-    public static ConjunctiveSelectQuery extractXORCondition(ExtensionElements extensionElements, DataSchema dataSchema) {
+    public static ConjunctiveSelectQuery parseXORCondition(ExtensionElements extensionElements, DataSchema dataSchema) {
         Collection<CamundaProperty> properties = extensionElements.getElementsQuery()
                 .filterByType(CamundaProperties.class)
                 .singleResult()

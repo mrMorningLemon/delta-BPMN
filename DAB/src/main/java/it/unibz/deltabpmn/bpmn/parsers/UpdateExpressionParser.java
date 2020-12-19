@@ -5,6 +5,8 @@ import it.unibz.deltabpmn.datalogic.*;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.elements.Attribute;
 import it.unibz.deltabpmn.dataschema.elements.Term;
+import it.unibz.deltabpmn.exception.InvalidInputException;
+import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import javafx.util.Pair;
 import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperties;
@@ -65,7 +67,8 @@ public class UpdateExpressionParser {
             Pair<Term[], String> insertComponents = parseInsertExpression(mainStatement, dataSchema);
             ((InsertTransition) transition).insert(dataSchema.getRepositoryRelationAssociations().get(insertComponents.getValue()), insertComponents.getKey());
         }
-        if (effects.stream().anyMatch(str -> str.contains("DELETE"))) {
+        //if (effects.stream().anyMatch(str -> str.contains("DELETE"))) {
+        if (mainStatement.contains("DELETE")) {
             if (query == null)
                 transition = new DeleteTransition(taskName + "DELETE", dataSchema);
             else
@@ -73,9 +76,10 @@ public class UpdateExpressionParser {
             Pair<Term[], String> deleteComponents = parseDeleteExpression(mainStatement, dataSchema);
             ((DeleteTransition) transition).delete(dataSchema.getRepositoryRelationAssociations().get(deleteComponents.getValue()), deleteComponents.getKey());
         }
-        if (effects.stream().anyMatch(str -> str.contains("UPDATE"))) {
-            //ToDo: add the management of (bulk) update statements!
+        //if (effects.stream().anyMatch(str -> str.contains("UPDATE"))) {
+        if (mainStatement.contains("UPDATE")) {
             //manage the update statement
+            transition = parseUpdateExpression(query, taskName + "UPDATE", mainStatement, dataSchema);
         }
         return transition;
     }
@@ -140,26 +144,68 @@ public class UpdateExpressionParser {
             relation = values[0].trim();
         } else throw new Exception("Empty UPDATE clause!");
         //create the update object
-        BulkUpdate update = null;
+        BulkUpdate bulkUpdate = null;
         if (query == null)
-            update = new BulkUpdate(taskName + "UPDATE", dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
+            bulkUpdate = new BulkUpdate(taskName + "UPDATE", dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
         else
-            update = new BulkUpdate(taskName + "UPDATE", query, dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
+            bulkUpdate = new BulkUpdate(taskName + "UPDATE", query, dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
 
         //ToDo: check if extracting only attributes without relations will be helpful
         //extract elements that have to be updated
-        List<String> referenceVariables = new ArrayList<>();
-        Map<Attribute, String> attributeVaribaleAssociations = new HashMap<>();
+        //List<String> referenceVariables = new ArrayList<>();
+        Map<String, Attribute> refVaribaleAttributeAssociations = new HashMap<>();
         Pattern updVarsPattern = Pattern.compile("SET(.*)CASE", Pattern.DOTALL);
         Matcher updVarsMatcher = updVarsPattern.matcher(updateExpr);
         if (updVarsMatcher.find()) {
             //extract attributes from the SET clause
             String[] values = updVarsMatcher.group(1).split(",");
-            System.out.println(values.length);
-            Arrays.stream(values).forEach(c -> System.out.println(c));
+            Arrays.stream(values)
+                    .forEach(c ->
+                            refVaribaleAttributeAssociations.put(
+                                    c.substring(c.indexOf("@")).trim(),
+                                    dataSchema.getAllAttributes().get(c.substring(c.indexOf(".") + 1, c.indexOf("=")).trim()))
+                    );
         } else throw new Exception("Empty SET clause!");
 
+        //process WHEN-THEN clauses
+        Pattern casePattern = Pattern.compile("(WHEN.*?THEN.*?(?=(WHEN|ELSE)))|(?<=ELSE).*", Pattern.DOTALL);
+        Matcher caseMatcher = casePattern.matcher(updateExpr);
+        //create a list that stores partially processed conditional update statements from WHEN-THEN clauses
 
+        BulkCondition lastFalseNode = null;
+        boolean init = true;
+        while (caseMatcher.find()) {//ToDo: check this part!
+            String clause = caseMatcher.group(0).replaceFirst("WHEN ", "").trim();
+            String[] values = clause.split("THEN");
+            if (init) {
+                bulkUpdate.root = BulkConditionParser.parseAndUpdate(bulkUpdate.root, values[0], dataSchema);
+                BulkCondition trueNode = bulkUpdate.root.addTrueChild();
+                //get all @v=u expressions from the THEN part of the clause
+                parseUpdateList(trueNode, values[1], refVaribaleAttributeAssociations);
+                lastFalseNode = bulkUpdate.root.getFalseNode();
+                init = false;
+            } else {
+                if (clause.contains("THEN")) {
+                    lastFalseNode = BulkConditionParser.parseAndUpdate(lastFalseNode, values[0], dataSchema);
+                    BulkCondition trueNode = lastFalseNode.addTrueChild();
+                    //get all @v=u expressions from the THEN part of the clause
+                    parseUpdateList(trueNode, values[1], refVaribaleAttributeAssociations);
+                    lastFalseNode = lastFalseNode.getFalseNode();
+                } else
+                    //manage the ELSE case
+                    parseUpdateList(lastFalseNode, values[1], refVaribaleAttributeAssociations);
+            }
+        }
+        return bulkUpdate;
+    }
+
+    private static void parseUpdateList(BulkCondition node, String expression, Map<String, Attribute> refVaribaleAttributeAssociations) throws InvalidInputException, UnmatchingSortException {
+        String[] attributeUpdates = expression.split(",");
+        for (String upd : attributeUpdates) {
+            String[] operands = upd.split("=");
+            node.updateAttributeValue(refVaribaleAttributeAssociations.get(operands[0].trim()), operands[1].trim());
+        }
+        //return node;
     }
 
     private static ConjunctiveSelectQuery parsePrecondition(String precondition, DataSchema dataSchema) {

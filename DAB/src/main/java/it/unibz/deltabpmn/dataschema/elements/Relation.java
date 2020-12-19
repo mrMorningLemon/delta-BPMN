@@ -20,4 +20,6 @@ public interface Relation {
     int arity();
 
     Attribute getAttributeByIndex(int index);
+
+    int getAttributesIndex(Attribute attr);
 }

@@ -198,6 +198,15 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
     }
 
     /**
+     *
+     * @return A map with (catalog relation name, object) pairs
+     */
+    public Map<String, CatalogRelation> getCatalogRelationAssociations() {
+        return this.catalog;
+    }
+
+
+    /**
      * @return A list of all Repository relations contained in the data schema.
      */
     public List<RepositoryRelation> getRepositoryRelations() {

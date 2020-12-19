@@ -3,7 +3,7 @@ package it.unibz.deltabpmn.bpmn.parsers;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.elements.Term;
 
-public class TermProcessor {
+class TermProcessor {
 
     /**
      * Process a string representation of a DAB term. A term can be an attribute,

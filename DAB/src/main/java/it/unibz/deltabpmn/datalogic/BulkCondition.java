@@ -30,8 +30,8 @@ public class BulkCondition {
     private String condition;
     private String negatedCondition;
     private boolean isLeaf;
-    BulkCondition true_node;
-    BulkCondition false_node;
+    private BulkCondition true_node;
+    private BulkCondition false_node;
     private List<String> falseList;
     private Map<String, String> eevarAssociation;
     private Map<String, String> setTable;
@@ -52,7 +52,6 @@ public class BulkCondition {
         this.dataSchema = dataSchema;
     }
 
-    //ToDo: private??
     //ToDo: add MCMT representation format
     //ToDo: why to throw this exception? isn't it possible to make sure that we use only attributes appearing in the relations to update?
 
@@ -66,7 +65,7 @@ public class BulkCondition {
      * @throws InvalidInputException Appears if the attribute does not refer to a
      *                               correct repository relation specified in the update.
      */
-    public String prepareAttribute(Attribute attr) throws InvalidInputException {
+    private String prepareAttribute(Attribute attr) throws InvalidInputException {
         if (!(attr.getRelation() instanceof RepositoryRelation) || !((RepositoryRelation) attr.getRelation() == this.relationToUpdate))
             throw new InvalidInputException("DABAttribute " + attr.getName() + " should refer to correct Repository relation: " + relationToUpdate.getName());
         String result = "";
@@ -82,16 +81,33 @@ public class BulkCondition {
     //ToDo: why is an Object used here? can't we use a constant/variable?
     //ToDo: this method may return wrong results as toString methods of Constant and CaseVariable objects are not returning MCMT specifications!
 
+    //ToDo: remove the method
+
     /**
      * A method for building a condition "greater than" between an attribute and an integer number.
      *
      * @param attr  The attribute (of the relation that has to be updated) to insert in the condition.
      * @param value The integer number appearing in the condition.
      */
-    public void addGreaterThanCondition(Attribute attr, int value) throws InvalidInputException {
-        condition += " (> " + prepareAttribute(attr) + " " + value + ")";
+    public BulkCondition addGreaterThanCondition(Attribute attr, int value) throws InvalidInputException {
+        this.condition += " (> " + prepareAttribute(attr) + " " + value + ")";
         this.falseList.add(" (not (> " + prepareAttribute(attr) + " " + value + "))");
+        return this;
     }
+
+    /**
+     * A method for building a condition "greater than" between an attribute and an integer number.
+     *
+     * @param attr   The attribute (of the relation that has to be updated) to insert in the condition.
+     * @param object The integer number appearing in the condition.
+     */
+    public BulkCondition addGreaterThanCondition(Attribute attr, Constant object) throws InvalidInputException {
+        this.condition += " (> " + prepareAttribute(attr) + " " + object.getName() + ")";
+        this.falseList.add(" (not (> " + prepareAttribute(attr) + " " + object.getName() + "))");
+        return this;
+    }
+
+    //ToDo: remove the method
 
     /**
      * A method for building a condition "less than" between an attribute and an integer number.
@@ -99,9 +115,22 @@ public class BulkCondition {
      * @param attr  The attribute (of the relation that has to be updated) to insert in the condition.
      * @param value The integer number appearing in the condition.
      */
-    public void addLessThanCondition(Attribute attr, int value) throws InvalidInputException {
-        condition += " (< " + prepareAttribute(attr) + " " + value + ")";
+    public BulkCondition addLessThanCondition(Attribute attr, int value) throws InvalidInputException {
+        this.condition += " (< " + prepareAttribute(attr) + " " + value + ")";
         this.falseList.add(" (not (< " + prepareAttribute(attr) + " " + value + "))");
+        return this;
+    }
+
+    /**
+     * A method for building a condition "less than" between an attribute and an integer number.
+     *
+     * @param attr   The attribute (of the relation that has to be updated) to insert in the condition.
+     * @param object The integer number appearing in the condition.
+     */
+    public BulkCondition addLessThanCondition(Attribute attr, Constant object) throws InvalidInputException {
+        this.condition += " (< " + prepareAttribute(attr) + " " + object.getName() + ")";
+        this.falseList.add(" (not (< " + prepareAttribute(attr) + " " + object.getName() + "))");
+        return this;
     }
 
     /**
@@ -110,10 +139,25 @@ public class BulkCondition {
      * @param attr   The attribute (of the relation that has to be updated) to insert in the condition.
      * @param object The constant appearing in the condition.
      */
-    public void addEqualsCondition(Attribute attr, Constant object) throws InvalidInputException {
-        condition += " (= " + prepareAttribute(attr) + " " + object.getName() + ")";
+    public BulkCondition addEqualsCondition(Attribute attr, Constant object) throws InvalidInputException {
+        this.condition += " (= " + prepareAttribute(attr) + " " + object.getName() + ")";
         this.falseList.add(" (not (= " + prepareAttribute(attr) + " " + object.getName() + "))");
+        return this;
     }
+
+    /**
+     * A method for building the equality condition between an attribute and a constant.
+     *
+     * @param attr   The attribute (of the relation that has to be updated) to insert in the condition.
+     * @param object The constant appearing in the condition.
+     */
+    public BulkCondition addNotEqualsCondition(Attribute attr, Constant object) throws InvalidInputException {
+        this.condition += " (not (= " + prepareAttribute(attr) + " " + object.getName() + ")";
+        this.falseList.add(" (= " + prepareAttribute(attr) + " " + object.getName() + "))");
+        return this;
+    }
+
+    //ToDo: remove the method
 
     /**
      * A method for building the equality condition between an attribute and an integer number.
@@ -121,9 +165,10 @@ public class BulkCondition {
      * @param attr  The attribute (of the relation that has to be updated) to insert in the condition.
      * @param value The integer number appearing in the condition.
      */
-    public void addEqualsCondition(Attribute attr, int value) throws InvalidInputException {
-        condition += " (= " + prepareAttribute(attr) + " " + value + ")";
+    public BulkCondition addEqualsCondition(Attribute attr, int value) throws InvalidInputException {
+        this.condition += " (= " + prepareAttribute(attr) + " " + value + ")";
         this.falseList.add(" (not (= " + prepareAttribute(attr) + " " + value + "))");
+        return this;
     }
 
     /**
@@ -134,7 +179,7 @@ public class BulkCondition {
      * @param attributes An array of the attributes that should be checked.
      * @throws InvalidInputException Appears if there is no matching between the arity of the relation and the size of the array of attributes.
      */
-    public void addInRelationCondition(CatalogRelation cat, Attribute... attributes) throws InvalidInputException {
+    public BulkCondition addInRelationCondition(CatalogRelation cat, Attribute... attributes) throws InvalidInputException {
         // first control arity
         if (cat.arity() != attributes.length) {
             throw new InvalidInputException(
@@ -143,13 +188,14 @@ public class BulkCondition {
         }
         for (int i = 0; i < attributes.length; i++) {
             if (i == 0 && attributes[i] != null) {
-                condition += " (not (= " + prepareAttribute(attributes[0]) + " " + SystemConstants.NULL.getName() + "_" + attributes[0].getSort().getSortName() + "))";
+                this.condition += " (not (= " + prepareAttribute(attributes[0]) + " " + SystemConstants.NULL.getName() + "_" + attributes[0].getSort().getSortName() + "))";
             } else {
                 if (attributes[i] != null) {
-                    condition += " (= (" + cat.getAttributeValueSignature((i + 1), prepareAttribute(attributes[0])) + ") " + prepareAttribute(attributes[i]) + ")";
+                    this.condition += " (= (" + cat.getAttributeValueSignature((i + 1), prepareAttribute(attributes[0])) + ") " + prepareAttribute(attributes[i]) + ")";
                 }
             }
         }
+        return this;
     }
 
     /**
@@ -214,9 +260,8 @@ public class BulkCondition {
      */
     public String getLocalUpdateMCMTTranslation() throws InvalidInputException {
         String result = "";
-        //ToDo: what's the considered relation??
 
-        // iterate through the repository relations in the data schema and find the considered relation
+        // iterate through the repository relations in the data schema and find the relation used in the update
         for (RepositoryRelation rep : this.dataSchema.getRepositoryRelations()) {
             // case in which the relation is the one to be updated
             if (rep == relationToUpdate) {
@@ -314,26 +359,6 @@ public class BulkCondition {
         this.eevarAssociation = eevar_association;
     }
 
-    //ToDo: explain what's the set table.
-
-    /**
-     * @return A Map representing the set table.
-     */
-    public Map<String, String> getSetTable() {
-        return this.setTable;
-    }
-
-    //ToDo: explain what's the set table.
-
-    /**
-     * Method for setting the set table.
-     *
-     * @param setTable The set table object.
-     */
-    public void setSetTable(Map<String, String> setTable) {
-        this.setTable = setTable;
-    }
-
     //ToDo: explain what's the list of false conditions.
 
     /***
@@ -343,16 +368,12 @@ public class BulkCondition {
         return falseList;
     }
 
-    //ToDo: explain what's the list of false conditions.
 
-    /**
-     * A method for setting the list of false conditions.
-     *
-     * @param falseList The list object.
-     */
-    public void setFalseList(List<String> falseList) {
-        this.falseList = falseList;
+    public BulkCondition getTrueNode(){
+        return this.true_node;
     }
 
-
+    public BulkCondition getFalseNode(){
+        return this.false_node;
+    }
 }

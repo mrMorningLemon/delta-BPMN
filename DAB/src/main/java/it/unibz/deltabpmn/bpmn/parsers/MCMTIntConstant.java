@@ -2,9 +2,9 @@ package it.unibz.deltabpmn.bpmn.parsers;
 
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.Sort;
-import it.unibz.deltabpmn.dataschema.elements.Term;
+import it.unibz.deltabpmn.dataschema.elements.Constant;
 
-class MCMTIntConstant implements Term {
+class MCMTIntConstant implements Constant {
     private int value;
 
     public MCMTIntConstant(int value) {
