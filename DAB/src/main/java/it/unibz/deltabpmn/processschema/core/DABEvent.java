@@ -1,6 +1,6 @@
 package it.unibz.deltabpmn.processschema.core;
 
-import it.unibz.deltabpmn.datalogic.InsertTransition;
+import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
@@ -13,7 +13,7 @@ class DABEvent implements Event {
     private String name;
     private CaseVariable lifeCycle;
     private Block[] subBlocks;
-    private InsertTransition effect = null;
+    private ComplexTransition effect = null;
     private DataSchema dataSchema;
 
     public DABEvent(String name, DataSchema schema) {
@@ -24,7 +24,7 @@ class DABEvent implements Event {
         this.lifeCycle.setLifeCycle(1);
     }
 
-    public DABEvent(String name, InsertTransition eff, DataSchema schema) {
+    public DABEvent(String name, ComplexTransition eff, DataSchema schema) {
         this.name = name;
         this.effect = eff;
         this.subBlocks = new Block[0];
@@ -33,12 +33,12 @@ class DABEvent implements Event {
     }
 
     @Override
-    public void addTransition(InsertTransition eff) {
+    public void addTransition(ComplexTransition eff) {
         this.effect = eff;
     }
 
     @Override
-    public InsertTransition getTransition() {
+    public ComplexTransition getTransition() {
         return this.effect;
     }
 

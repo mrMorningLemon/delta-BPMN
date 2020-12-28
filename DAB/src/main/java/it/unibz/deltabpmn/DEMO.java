@@ -19,7 +19,7 @@ import it.unibz.deltabpmn.verification.mcmt.translation.DABProcessTranslator;
 
 public class DEMO {
 
-    public static void main(String[] args) throws UnmatchingSortException, InvalidInputException, EevarOverflowException {
+    public static void main(String[] args) throws Exception {
 
 
         //DataSchema dataSchema = DataSchema.getInstance();
@@ -28,28 +28,17 @@ public class DEMO {
         CamundaModelReader modelReader = new CamundaModelReader(path);
         DataSchema dataSchema = modelReader.getDataSchema();
 
-        // check the sorts
-        dataSchema.getSorts().forEach(s -> System.out.print(s + " "));
-        System.out.println();
+        ProcessBlock process = modelReader.getDabProcess();
 
-        // check the catalog
-        dataSchema.getCatalogRelations().forEach(c -> System.out.print(c + " "));
-        System.out.println();
-
-        // check the repository
-        dataSchema.getRepositoryRelations().forEach(c -> System.out.print(c + " "));
-        System.out.println();
-
-        ProcessSchema processSchema = new ProcessSchema(dataSchema);
-        Task decideEligible = processSchema.newTask("taskA");
-
-        System.out.println(decideEligible.getMCMTTranslation());
-
-        example(dataSchema);
+        DABProcessTranslator processMCMTTranslation = new DABProcessTranslator(process.getName() + "_translation", process, dataSchema);
+        process.getMCMTTranslation();
     }
 
 
-    private static void example(DataSchema dataSchema) throws UnmatchingSortException, InvalidInputException, EevarOverflowException {
+    /**
+     * This is an example program demonstrating how to create DAB processes
+     */
+    private static void exampleDAB(DataSchema dataSchema) throws UnmatchingSortException, InvalidInputException, EevarOverflowException {
         //////////////////////////////// JOB HIRING EXAMPLE ////////////////////////////////
 
         // sorts
@@ -118,7 +107,7 @@ public class DEMO {
 
         BulkUpdate markE = new BulkUpdate("MarkE", new ConjunctiveSelectQuery(), application, dataSchema);
         markE.root.addGreaterThanCondition(application.getAttributeByIndex(2), 80)
-                .addLessThanCondition(application.getAttributeByIndex(2),100);
+                .addLessThanCondition(application.getAttributeByIndex(2), 100);
         markE.root.addTrueChild().updateAttributeValue(application.getAttributeByIndex(3), "True");
         markE.root.addFalseChild().updateAttributeValue(application.getAttributeByIndex(3), "False");
 

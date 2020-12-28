@@ -1,6 +1,6 @@
 package it.unibz.deltabpmn.processschema.blocks.providers;
 
-import it.unibz.deltabpmn.datalogic.InsertTransition;
+import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.processschema.blocks.Event;
 
 /**
@@ -9,5 +9,5 @@ import it.unibz.deltabpmn.processschema.blocks.Event;
 public interface EventProvider {
     Event newEvent(String name);
 
-    Event newEvent(String name, InsertTransition eff);
+    Event newEvent(String name, ComplexTransition eff);
 }

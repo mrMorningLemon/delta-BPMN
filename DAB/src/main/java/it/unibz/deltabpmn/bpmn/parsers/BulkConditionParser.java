@@ -64,6 +64,4 @@ public class BulkConditionParser {
     private static Constant getConstant(String el, DataSchema dataSchema) {
         return dataSchema.getConstants().get(el);
     }
-
-
 }

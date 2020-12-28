@@ -1,12 +1,12 @@
 package it.unibz.deltabpmn.processschema.blocks;
 
-import it.unibz.deltabpmn.datalogic.InsertTransition;
+import it.unibz.deltabpmn.datalogic.ComplexTransition;
 
 public interface Event extends Block {
 
-    void addTransition(InsertTransition eff);
+    void addTransition(ComplexTransition eff);
 
-    InsertTransition getTransition();
+    ComplexTransition getTransition();
 
     boolean hasEffect();
 }

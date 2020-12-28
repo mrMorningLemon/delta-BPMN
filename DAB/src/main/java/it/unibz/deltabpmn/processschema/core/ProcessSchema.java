@@ -31,7 +31,7 @@ public final class ProcessSchema implements TaskProvider, EventProvider, Process
     }
 
     @Override
-    public Event newEvent(String name, InsertTransition eff) {
+    public Event newEvent(String name, ComplexTransition eff) {
         return new DABEvent(name, eff, this.dataSchema);
     }
 

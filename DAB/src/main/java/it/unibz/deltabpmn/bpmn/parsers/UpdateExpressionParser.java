@@ -24,7 +24,7 @@ public class UpdateExpressionParser {
     private static final String varKey = "var";
 
 
-    public static ComplexTransition parseTask(String taskName, ExtensionElements extensionElements, DataSchema dataSchema) throws Exception {
+    public static ComplexTransition parse(String taskName, ExtensionElements extensionElements, DataSchema dataSchema) throws Exception {
         String precondition = "";
         List<String> effects = new ArrayList<>();
         List<String> newVariableDeclarations = new ArrayList<>();
