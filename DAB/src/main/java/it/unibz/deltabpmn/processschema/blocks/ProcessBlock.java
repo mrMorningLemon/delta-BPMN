@@ -7,4 +7,5 @@ public interface ProcessBlock extends Block {
     void addBlock(Block b);
 
     void setEventTransition(InsertTransition ins);
+
 }

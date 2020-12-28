@@ -4,14 +4,18 @@ import it.unibz.deltabpmn.bpmn.extractors.CaseVariableExtractor;
 import it.unibz.deltabpmn.bpmn.extractors.CatalogRelationExtractor;
 import it.unibz.deltabpmn.bpmn.extractors.RepositoryRelationExtractor;
 import it.unibz.deltabpmn.bpmn.parsers.GatewayConditionParser;
+import it.unibz.deltabpmn.bpmn.parsers.SafetyPropertyParser;
 import it.unibz.deltabpmn.bpmn.parsers.UpdateExpressionParser;
+import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.processschema.blocks.*;
 import it.unibz.deltabpmn.processschema.core.ProcessSchema;
+import it.unibz.deltabpmn.verification.mcmt.translation.DABProcessTranslator;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.impl.instance.ServiceTaskImpl;
 import org.camunda.bpm.model.bpmn.impl.instance.StartEventImpl;
 import org.camunda.bpm.model.bpmn.impl.instance.TaskImpl;
+import org.camunda.bpm.model.bpmn.instance.Process;
 import org.camunda.bpm.model.bpmn.instance.*;
 import org.camunda.bpm.model.xml.ModelInstance;
 
@@ -40,6 +44,8 @@ public class CamundaModelReader {
     private int xorBlockCounter = 1;//counter for XOR (exclusive choice) blocks
     private int loopBlockCounter = 1;//counter for LOOP blocks
     private ProcessBlock dabProcess;
+    private List<ConjunctiveSelectQuery> propertiesToVerify = new ArrayList<>();
+    private String processName;
 
 
     public CamundaModelReader(String filePath) throws Exception {
@@ -55,10 +61,15 @@ public class CamundaModelReader {
         this.dataSchema = RepositoryRelationExtractor.extract(this.modelInstance, this.dataSchema);
 
         this.processSchema = new ProcessSchema(dataSchema);
-        String processName = file.getName().replaceAll("(.bpmn)*", "");
+        this.processName = file.getName().replaceAll("(.bpmn)*", "");
         this.dabProcess = processSchema.newProcessBlock(processName);
         bpmnModelExplorer();
         this.dabProcess.addBlock(this.stackBlocks.pop());
+        //get property to verify
+        ExtensionElements extensionElements = modelInstance.getModelElementsByType(Process.class).iterator().next().getExtensionElements();
+        if (extensionElements == null)
+            throw new Exception("The process model contains no properties to verify!");
+        this.propertiesToVerify = SafetyPropertyParser.parse(extensionElements, dataSchema);
     }
 
 
@@ -66,7 +77,25 @@ public class CamundaModelReader {
         return this.dataSchema;
     }
 
-    public ProcessBlock getDabProcess(){return this.dabProcess;}
+    public ProcessBlock getDabProcess() {
+        return this.dabProcess;
+    }
+
+    public List<ConjunctiveSelectQuery> getPropertiesToVerify() {
+        return this.propertiesToVerify;
+    }
+
+    public List<DABProcessTranslator> getProcessTranslators() {
+        List<DABProcessTranslator> processTranslators = new ArrayList<>();
+        int cnt = 1;
+        for (ConjunctiveSelectQuery property : this.propertiesToVerify) {
+            DABProcessTranslator processTranslator = new DABProcessTranslator(processName + "_" + cnt, this.dabProcess, this.dataSchema);
+            processTranslator.setSafetyFormula(property);
+            processTranslators.add(processTranslator);
+            cnt++;
+        }
+        return processTranslators;
+    }
 
     private void bpmnModelExplorer() throws Exception {
         //1. Extract start events and check if there are more than two

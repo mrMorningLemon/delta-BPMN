@@ -3,9 +3,9 @@ package it.unibz.deltabpmn.processschema.core;
 import it.unibz.deltabpmn.datalogic.BinaryConditionProvider;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.datalogic.InsertTransition;
+import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
-import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
@@ -35,6 +35,7 @@ class DABProcessBlock implements ProcessBlock {
         this.subBlocks = new Block[1];
         this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
     }
+
 
     @Override
     public CaseVariable getLifeCycleVariable() {
@@ -68,7 +69,7 @@ class DABProcessBlock implements ProcessBlock {
         // first part: itself ENABLED --> B1 ENABLED and itself ACTIVE
         ConjunctiveSelectQuery firstGuard = new ConjunctiveSelectQuery();
         firstGuard.addBinaryCondition(BinaryConditionProvider.equality(this.lifeCycle, State.ENABLED));
-        InsertTransition firstUpdate = new InsertTransition(this.name + " first translation", firstGuard,this.dataSchema);
+        InsertTransition firstUpdate = new InsertTransition(this.name + " first translation", firstGuard, this.dataSchema);
         firstUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED);
         firstUpdate.setControlCaseVariableValue(this.lifeCycle, State.ACTIVE);
 
@@ -76,7 +77,7 @@ class DABProcessBlock implements ProcessBlock {
         // second part: B1 COMPLETED --> B1 IDLE and itself completed
         ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery();
         secondGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
-        InsertTransition secondUpdate = new InsertTransition(this.name + " second translation", secondGuard,this.dataSchema);
+        InsertTransition secondUpdate = new InsertTransition(this.name + " second translation", secondGuard, this.dataSchema);
         secondUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.IDLE);
         secondUpdate.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
 
@@ -91,4 +92,5 @@ class DABProcessBlock implements ProcessBlock {
         return result;
 
     }
+
 }

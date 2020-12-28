@@ -26,12 +26,10 @@ public class DEMO {
         String path = System.getProperty("user.home") + "/Dropbox/DABs/DAB-Camunda/models/ex1.bpmn";
 
         CamundaModelReader modelReader = new CamundaModelReader(path);
-        DataSchema dataSchema = modelReader.getDataSchema();
 
-        ProcessBlock process = modelReader.getDabProcess();
+        for (DABProcessTranslator processTranslator : modelReader.getProcessTranslators())
 
-        DABProcessTranslator processMCMTTranslation = new DABProcessTranslator(process.getName() + "_translation", process, dataSchema);
-        process.getMCMTTranslation();
+            processTranslator.generateMCMTTranslation();
     }
 
 
@@ -39,17 +37,12 @@ public class DEMO {
      * This is an example program demonstrating how to create DAB processes
      */
     private static void exampleDAB(DataSchema dataSchema) throws UnmatchingSortException, InvalidInputException, EevarOverflowException {
-        //////////////////////////////// JOB HIRING EXAMPLE ////////////////////////////////
-
         // sorts
         Sort job_id = dataSchema.newSort("jobcatID");
         Sort user_id = dataSchema.newSort("userID");
         Sort num_age = dataSchema.newSort("Num_age");
         Sort int_sort = dataSchema.newSort("Num_score");
 
-        // check the sorts
-//        dataSchema.getSorts().forEach(s -> System.out.print(s + " "));
-//        System.out.println();
 
         //catalog relations
         CatalogRelation jobCategory = dataSchema.newCatalogRelation("Job_Category");
@@ -60,9 +53,6 @@ public class DEMO {
         Attribute name = user.addAttribute("name", SystemSorts.STRING);
         Attribute age = user.addAttribute("age", num_age);
 
-        // check the catalogs
-//        dataSchema.getCatalogRelations().forEach(c -> System.out.print(c + " "));
-//        System.out.println();
 
         //repository relations
         RepositoryRelation application = dataSchema.newRepositoryRelation("Application");
@@ -71,8 +61,6 @@ public class DEMO {
         Attribute score = application.addAttribute("score", int_sort);
         Attribute eligible = application.addAttribute("eligible", SystemSorts.BOOL);
 
-//        dataSchema.getRepositoryRelations().forEach(c -> System.out.print(c + " "));
-//        System.out.println();
 
 
         //case variables
@@ -82,28 +70,22 @@ public class DEMO {
         CaseVariable result = dataSchema.newCaseVariable("result", SystemSorts.BOOL, true);
         CaseVariable winner = dataSchema.newCaseVariable("winner", user_id, true);
 
-//        dataSchema.getCaseVariables().forEach(c -> System.out.print(c + " "));
-//        System.out.println("\n\n");
 
         // some transitions
         ConjunctiveSelectQuery ins_job_cat_guard = new ConjunctiveSelectQuery(jobCategory.getAttributeByIndex(0));
         InsertTransition ins_job_cat = new InsertTransition("Insert_job_category", ins_job_cat_guard, dataSchema);
-        //ToDo: the following shouldn't work!!!
         ins_job_cat.setControlCaseVariableValue(jcid, dataSchema.newConstant("jcid", job_id));
 
 
-        ///System.out.println(ins_job_cat.getMCMTTranslation());
 
         ConjunctiveSelectQuery ins_user_guard = new ConjunctiveSelectQuery(user.getAttributeByIndex(0));
         InsertTransition ins_user = new InsertTransition("Insert_User", ins_user_guard, dataSchema);
         ins_user.setControlCaseVariableValue(uid, dataSchema.newConstant("uid", user_id));
 
-        //System.out.println(ins_user.getMCMTTranslation());
 
         InsertTransition check_qual = new InsertTransition("Check_Qual", dataSchema);
         check_qual.setControlCaseVariableValue(qualif, SystemConstants.TRUE);
 
-        //System.out.println(check_qual.getMCMTTranslation());
 
         BulkUpdate markE = new BulkUpdate("MarkE", new ConjunctiveSelectQuery(), application, dataSchema);
         markE.root.addGreaterThanCondition(application.getAttributeByIndex(2), 80)
@@ -111,7 +93,6 @@ public class DEMO {
         markE.root.addTrueChild().updateAttributeValue(application.getAttributeByIndex(3), "True");
         markE.root.addFalseChild().updateAttributeValue(application.getAttributeByIndex(3), "False");
 
-        // System.out.println(markE.getMCMTTranslation());
 
 
         // some transitions
@@ -151,6 +132,7 @@ public class DEMO {
         ConjunctiveSelectQuery safety_property = new ConjunctiveSelectQuery();
         safety_property.addBinaryCondition(BinaryConditionProvider.equality(root.getLifeCycleVariable(), State.ENABLED));
         safety_property.addBinaryCondition(BinaryConditionProvider.equality(winner, SystemConstants.NULL));
+
         assign_job_process.setSafetyFormula(safety_property);
 
         assign_job_process.generateMCMTTranslation();
