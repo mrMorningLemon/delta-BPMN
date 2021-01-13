@@ -1,6 +1,7 @@
 package it.unibz.deltabpmn.processschema.core;
 
 import it.unibz.deltabpmn.datalogic.BinaryConditionProvider;
+import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.datalogic.InsertTransition;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
@@ -49,7 +50,7 @@ public class DABErrorEventBlock implements ErrorEventBlock {
         String result = "";
 
         // first part: event B1 enabled --> B1 COMPLETED and UPDATE
-        InsertTransition firstU = null;
+        ComplexTransition firstU = null;
         if (((Event) this.subBlocks[0]).hasEffect()) {
             firstU = ((Event) this.subBlocks[0]).getTransition();
             firstU.addTaskGuard("(= " + this.subBlocks[0].getLifeCycleVariable().getName() + " Enabled)");
@@ -62,7 +63,7 @@ public class DABErrorEventBlock implements ErrorEventBlock {
         }
 
         // second part: event B1 enabled --> Error propagation and possible update
-        InsertTransition secondU = null;
+        ComplexTransition secondU = null;
         if (((Event) this.subBlocks[1]).hasEffect()) {
             secondU = ((Event) this.subBlocks[1]).getTransition();
             startPropagation(this.handler, secondU);
@@ -81,13 +82,13 @@ public class DABErrorEventBlock implements ErrorEventBlock {
 
     }
 
-    private void startPropagation(Block handler, InsertTransition transition) throws InvalidInputException, UnmatchingSortException {
+    private void startPropagation(Block handler, ComplexTransition transition) throws InvalidInputException, UnmatchingSortException {
         transition.setControlCaseVariableValue(handler.getLifeCycleVariable(), this.dataSchema.newConstant("Error" + handler.getSubBlocks()[0].getName(), SystemSorts.STRING));
         for (Block block : handler.getSubBlocks())
             propagateError(block, transition);
     }
 
-    private void propagateError(Block current, InsertTransition transition) throws InvalidInputException, UnmatchingSortException {
+    private void propagateError(Block current, ComplexTransition transition) throws InvalidInputException, UnmatchingSortException {
         if (current instanceof Task) {
             transition.setControlCaseVariableValue(current.getLifeCycleVariable(), State.IDLE);
             return;
@@ -95,7 +96,6 @@ public class DABErrorEventBlock implements ErrorEventBlock {
         transition.setControlCaseVariableValue(current.getLifeCycleVariable(), State.IDLE);
         for (Block block : current.getSubBlocks())
             propagateError(block, transition);
-
     }
 
     @Override

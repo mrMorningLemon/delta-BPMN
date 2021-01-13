@@ -311,6 +311,35 @@ public class CamundaModelReader {
                 //****************************************
 
 
+                //****************************************
+                //process a POSSIBLE COMPLETION block
+                //****************************************
+                if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 1 && !currentNode.getSucceedingNodes().filterByType(EndEvent.class).list().isEmpty()) {
+                    EndEvent end = currentNode.getSucceedingNodes().filterByType(EndEvent.class).list().get(0);
+                    //check if there are no potential situations in which we have a loop instead of the completion block
+                    if (lookAheadLoop(newFrontier, this.visitedOpenXORLoopGates) == null) {
+                        ErrorBlock newPossibleCompletionBlock = null;
+                        ExtensionElements extensionElements = currentNode.getExtensionElements();
+                        if (extensionElements == null)
+                            //throw new Exception("The condition of the POSSIBLE COMPLETION block " + currentNode.getId() + " is empty!");
+                            newPossibleCompletionBlock = processSchema.newErrorBlock(currentNode.getId());
+                        else
+                            newPossibleCompletionBlock = processSchema.newErrorBlock(currentNode.getId(), GatewayConditionParser.parseXORCondition(extensionElements, this.dataSchema));
+                        //newPossibleCompletionBlock.add(end.getId());
+                        //extract the condition from the XOR gate
+                        newFrontier.remove(end);
+                        stackBlocks.push(newPossibleCompletionBlock);
+                        this.bpmnNodeQueue.addFirst(newFrontier.get(0));
+                    }
+                }
+
+
+                //****************************************
+
+
+                //**************************************************
+                //END EVENT + RECURSIVE CREATION OF SEQUENCE BLOCKS
+                //**************************************************
                 //do here the creation of 2-sized sequence block! when you arrive to the end, do a traversal
                 //and create a sequence of chained pairs
                 if (currentNode instanceof EndEvent && stackBlocks.size() > 1) {

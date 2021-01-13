@@ -22,30 +22,32 @@ public class DABErrorBlock implements ErrorBlock {
     private Block[] subBlocks;
     private DataSchema dataSchema;
     private ConjunctiveSelectQuery cond;
-    private Block handler;
+    //private Block handler;
 
-    public DABErrorBlock(String name, Block handler, DataSchema schema) {
+    //public DABErrorBlock(String name, Block handler, DataSchema schema) {
+    public DABErrorBlock(String name, DataSchema schema) {
         this.name = name;
-        this.handler = handler;
+        //this.handler = handler;
         this.subBlocks = new Block[1];
         this.dataSchema = schema;
         this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 
-    public DABErrorBlock(String name, Block handler, ConjunctiveSelectQuery cond, DataSchema schema) {
+    //public DABErrorBlock(String name, Block handler, ConjunctiveSelectQuery cond, DataSchema schema) {
+    public DABErrorBlock(String name, ConjunctiveSelectQuery cond, DataSchema schema) {
         this.name = name;
-        this.handler = handler;
+        //this.handler = handler;
         this.cond = cond;
         this.subBlocks = new Block[1];
         this.dataSchema = schema;
         this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
     }
 
-    @Override
-    public void addBlock(Block b) {
-        this.subBlocks[0] = b;
-    }
+//    @Override
+//    public void addBlock(Block b) {
+//        this.subBlocks[0] = b;
+//    }
 
     @Override
     public void addCondition(ConjunctiveSelectQuery cond) {
@@ -77,7 +79,8 @@ public class DABErrorBlock implements ErrorBlock {
         thirdGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
         InsertTransition thirdUpdate = new InsertTransition(this.name + " third translation", thirdGuard, this.dataSchema);
         thirdUpdate.addTaskGuard(this.cond.getNegatedMCMT());// adds a guard that guarantees that the process will progress along a path associated to a condition that is FALSE
-        startPropagation(handler, thirdUpdate);//start propagation if the path with a FALSE condition has been followed
+        //ToDo: fix this part with the block handler
+        //startPropagation(handler, thirdUpdate);//start propagation if the path with a FALSE condition has been followed
 
         // generate MCMT translation
         result += firstUpdate.getMCMTTranslation() + "\n" + secondUpdate.getMCMTTranslation() + "\n" + thirdUpdate.getMCMTTranslation() + "\n";
@@ -94,7 +97,7 @@ public class DABErrorBlock implements ErrorBlock {
     }
 
     private void propagateError(Block current, InsertTransition transition) throws InvalidInputException, UnmatchingSortException {
-        //all other sub-block of the main block (i.e., the main block with the handler) are set to Idle
+        //all other sub-blocks of the main block (i.e., the main block with the handler) are set to Idle
         if (current instanceof Task) {
             transition.setControlCaseVariableValue(current.getLifeCycleVariable(), State.IDLE);
             return;

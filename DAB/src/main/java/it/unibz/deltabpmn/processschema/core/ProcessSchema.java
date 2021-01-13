@@ -1,8 +1,8 @@
 package it.unibz.deltabpmn.processschema.core;
 
+import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.datalogic.InsertTransition;
-import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.processschema.blocks.*;
 import it.unibz.deltabpmn.processschema.blocks.providers.*;
@@ -75,14 +75,24 @@ public final class ProcessSchema implements TaskProvider, EventProvider, Process
         return new DABLoopBlock(name, cond, this.dataSchema);
     }
 
+//    @Override
+//    public ErrorBlock newErrorBlock(String name, Block handler) {
+//        return new DABErrorBlock(name, handler, this.dataSchema);
+//    }
+//
+//    @Override
+//    public ErrorBlock newErrorBlock(String name, Block handler, ConjunctiveSelectQuery cond) {
+//        return new DABErrorBlock(name, handler, cond, this.dataSchema);
+//    }
+
     @Override
-    public ErrorBlock newErrorBlock(String name, Block handler) {
-        return new DABErrorBlock(name, handler, this.dataSchema);
+    public ErrorBlock newErrorBlock(String name) {
+        return new DABErrorBlock(name, this.dataSchema);
     }
 
     @Override
-    public ErrorBlock newErrorBlock(String name, Block handler, ConjunctiveSelectQuery cond) {
-        return new DABErrorBlock(name, handler, cond, this.dataSchema);
+    public ErrorBlock newErrorBlock(String name, ConjunctiveSelectQuery cond) {
+        return new DABErrorBlock(name, cond, this.dataSchema);
     }
 
     @Override
@@ -101,10 +111,9 @@ public final class ProcessSchema implements TaskProvider, EventProvider, Process
     }
 
     @Override
-    public ParallelBlock newParallelBlock(String name){
-        return new DABParallelBlock(name,this.dataSchema);
+    public ParallelBlock newParallelBlock(String name) {
+        return new DABParallelBlock(name, this.dataSchema);
     }
-
 
 
 }
