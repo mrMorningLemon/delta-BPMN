@@ -8,6 +8,7 @@ import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.Event;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 class DABEvent implements Event {
     private String name;
@@ -17,18 +18,18 @@ class DABEvent implements Event {
     private DataSchema dataSchema;
 
     public DABEvent(String name, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.subBlocks = new Block[0];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 
     public DABEvent(String name, ComplexTransition eff, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.effect = eff;
         this.subBlocks = new Block[0];
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 

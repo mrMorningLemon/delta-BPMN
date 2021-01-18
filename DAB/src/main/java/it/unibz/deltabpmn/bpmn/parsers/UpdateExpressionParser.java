@@ -101,7 +101,7 @@ public class UpdateExpressionParser {
             String[] values = argMatcher.group(1).split(",");
             toDelete = new Term[values.length];
             for (int i = 0; i < values.length; i++)
-                toDelete[i] = TermProcessor.processTerm(values[i], dataSchema);
+                toDelete[i] = TermProcessor.processTerm(values[i].trim(), dataSchema);
         } else throw new Exception("Empty DELETE clause!");
         String relationName;
         Pattern fromPattern = Pattern.compile("FROM(.*)", Pattern.DOTALL);
@@ -146,9 +146,9 @@ public class UpdateExpressionParser {
         //create the update object
         BulkUpdate bulkUpdate = null;
         if (query == null)
-            bulkUpdate = new BulkUpdate(taskName + "UPDATE", dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
+            bulkUpdate = new BulkUpdate(taskName, dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
         else
-            bulkUpdate = new BulkUpdate(taskName + "UPDATE", query, dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
+            bulkUpdate = new BulkUpdate(taskName, query, dataSchema.getRepositoryRelationAssociations().get(relation), dataSchema);
 
         //ToDo: check if extracting only attributes without relations will be helpful
         //extract elements that have to be updated
@@ -178,22 +178,22 @@ public class UpdateExpressionParser {
             String clause = caseMatcher.group(0).replaceFirst("WHEN ", "").trim();
             String[] values = clause.split("THEN");
             if (init) {
-                bulkUpdate.root = BulkConditionParser.parseAndUpdate(bulkUpdate.root, values[0], dataSchema);
+                bulkUpdate.root = BulkConditionParser.parseAndUpdate(bulkUpdate.root, values[0].trim(), dataSchema);
                 BulkCondition trueNode = bulkUpdate.root.addTrueChild();
                 //get all @v=u expressions from the THEN part of the clause
                 parseUpdateList(trueNode, values[1], refVaribaleAttributeAssociations);
-                lastFalseNode = bulkUpdate.root.getFalseNode();
+                lastFalseNode = bulkUpdate.root.addFalseChild();//create a false child object that can be then iteratively populated with further conditions
                 init = false;
             } else {
                 if (clause.contains("THEN")) {
-                    lastFalseNode = BulkConditionParser.parseAndUpdate(lastFalseNode, values[0], dataSchema);
+                    lastFalseNode = BulkConditionParser.parseAndUpdate(lastFalseNode, values[0].trim(), dataSchema);
                     BulkCondition trueNode = lastFalseNode.addTrueChild();
                     //get all @v=u expressions from the THEN part of the clause
                     parseUpdateList(trueNode, values[1], refVaribaleAttributeAssociations);
                     lastFalseNode = lastFalseNode.getFalseNode();
                 } else
                     //manage the ELSE case
-                    parseUpdateList(lastFalseNode, values[1], refVaribaleAttributeAssociations);
+                    parseUpdateList(lastFalseNode, values[0], refVaribaleAttributeAssociations);
             }
         }
         return bulkUpdate;

@@ -8,7 +8,7 @@ import it.unibz.deltabpmn.dataschema.elements.Sort;
  * A class with sorts initially used within the system.
  */
 public final class SystemSorts {
-    public static final Sort STRING = new DABSort("String_sort");
+    public static final Sort STRING = new DABSort("StringSort");
     public static final Sort BOOL = new DABSort("boolean");
     public static final Sort INT = new DABSort("int");
 

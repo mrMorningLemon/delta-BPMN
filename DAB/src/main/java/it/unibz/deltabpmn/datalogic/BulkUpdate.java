@@ -49,12 +49,13 @@ public class BulkUpdate implements ComplexTransition {
         this.root.setEevarAssociation(this.eevarAssociation);
     }
 
+    //ToDo: change management of TRUE preconditions
     /***
      * @param name         The name of the transition.
      * @param toUpdate     The repository relation that has to be updated.
      */
     public BulkUpdate(String name, RepositoryRelation toUpdate, DataSchema dataSchema) throws InvalidInputException {
-        this.precondition = null;
+        this.precondition = new ConjunctiveSelectQuery();
         this.eevarAssociation = precondition.getRefManager();
         this.guard = SystemConstants.TRUE.getName();
         this.name = name;
@@ -63,8 +64,6 @@ public class BulkUpdate implements ComplexTransition {
         this.root = new BulkCondition(toUpdate, dataSchema);
         this.root.setEevarAssociation(this.eevarAssociation);
     }
-
-    //ToDo: this method never does anything with the value (WTF?)
 
 
     /**

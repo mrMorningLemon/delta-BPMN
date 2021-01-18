@@ -58,10 +58,12 @@ public class BulkConditionParser {
 
 
     private static Attribute getAttribute(String el, DataSchema dataSchema) {
-        return dataSchema.getAllAttributes().get(el);
+        String[] signature = el.split("\\.");
+        return dataSchema.getAllAttributes().get(signature[1]);
     }
 
     private static Constant getConstant(String el, DataSchema dataSchema) {
-        return dataSchema.getConstants().get(el);
+        Constant val = (Constant) TermProcessor.processTerm(el.trim(), dataSchema);
+        return val;
     }
 }

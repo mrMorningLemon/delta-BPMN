@@ -21,14 +21,11 @@ public class DEMO {
 
     public static void main(String[] args) throws Exception {
 
-
-        //DataSchema dataSchema = DataSchema.getInstance();
-        String path = System.getProperty("user.home") + "/Dropbox/DABs/DAB-Camunda/models/ex1.bpmn";
+        String path = "set your path here";
 
         CamundaModelReader modelReader = new CamundaModelReader(path);
 
         for (DABProcessTranslator processTranslator : modelReader.getProcessTranslators())
-
             processTranslator.generateMCMTTranslation();
     }
 
@@ -40,8 +37,8 @@ public class DEMO {
         // sorts
         Sort job_id = dataSchema.newSort("jobcatID");
         Sort user_id = dataSchema.newSort("userID");
-        Sort num_age = dataSchema.newSort("Num_age");
-        Sort int_sort = dataSchema.newSort("Num_score");
+        Sort num_age = dataSchema.newSort("NumAge");
+        Sort int_sort = dataSchema.newSort("NumScore");
 
 
         //catalog relations
@@ -56,8 +53,8 @@ public class DEMO {
 
         //repository relations
         RepositoryRelation application = dataSchema.newRepositoryRelation("Application");
-        Attribute jcid_app = application.addAttribute("jcid_app", job_id);
-        Attribute uid_app = application.addAttribute("uid_app", user_id);
+        Attribute jcid_app = application.addAttribute("jcidApp", job_id);
+        Attribute uid_app = application.addAttribute("uidApp", user_id);
         Attribute score = application.addAttribute("score", int_sort);
         Attribute eligible = application.addAttribute("eligible", SystemSorts.BOOL);
 
@@ -73,17 +70,17 @@ public class DEMO {
 
         // some transitions
         ConjunctiveSelectQuery ins_job_cat_guard = new ConjunctiveSelectQuery(jobCategory.getAttributeByIndex(0));
-        InsertTransition ins_job_cat = new InsertTransition("Insert_job_category", ins_job_cat_guard, dataSchema);
+        InsertTransition ins_job_cat = new InsertTransition("InsertJobCategory", ins_job_cat_guard, dataSchema);
         ins_job_cat.setControlCaseVariableValue(jcid, dataSchema.newConstant("jcid", job_id));
 
 
 
         ConjunctiveSelectQuery ins_user_guard = new ConjunctiveSelectQuery(user.getAttributeByIndex(0));
-        InsertTransition ins_user = new InsertTransition("Insert_User", ins_user_guard, dataSchema);
+        InsertTransition ins_user = new InsertTransition("InsertUser", ins_user_guard, dataSchema);
         ins_user.setControlCaseVariableValue(uid, dataSchema.newConstant("uid", user_id));
 
 
-        InsertTransition check_qual = new InsertTransition("Check_Qual", dataSchema);
+        InsertTransition check_qual = new InsertTransition("CheckQual", dataSchema);
         check_qual.setControlCaseVariableValue(qualif, SystemConstants.TRUE);
 
 

@@ -27,7 +27,7 @@ public final class CatalogRelationExtractor {
             String catalogDeclText = catalogDecl.getTextContent();
             for (String decl : catalogDeclText.split(";")) {
                 int index = decl.indexOf('(');
-                String catalogRelationName = decl.substring(0, index);
+                String catalogRelationName = decl.substring(0, index).trim();
                 CatalogRelation catalogRelation = dataSchema.newCatalogRelation(catalogRelationName);
                 String attributes = decl.substring(index + 1, decl.length() - 1);
                 //start extracting attributes

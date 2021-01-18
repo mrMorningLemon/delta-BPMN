@@ -39,14 +39,14 @@ public enum State implements Constant {
     ACTIVE_SINGLE {
         @Override
         public String getName() {
-            return "Active_OnePath";
+            return "ActiveOnePath";
         }
     },
 
     ACTIVE_ALL {
         @Override
         public String getName() {
-            return "Active_AllPath";
+            return "ActiveAllPath";
         }
     };
 

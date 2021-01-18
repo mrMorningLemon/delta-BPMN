@@ -11,6 +11,7 @@ import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ParallelBlock;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 class DABParallelBlock implements ParallelBlock {
 
@@ -19,10 +20,10 @@ class DABParallelBlock implements ParallelBlock {
     private Block[] subBlocks;
     private DataSchema dataSchema;
 
-    public DABParallelBlock(String namem,DataSchema dataSchema) {
-        this.name = name;
+    public DABParallelBlock(String name,DataSchema dataSchema) {
+        this.name = NameManager.normaliseName(name);
         this.subBlocks = new Block[2];
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
         this.dataSchema = dataSchema;
     }

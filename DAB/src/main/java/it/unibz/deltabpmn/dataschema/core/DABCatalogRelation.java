@@ -78,7 +78,7 @@ class DABCatalogRelation implements CatalogRelation {
      * @return Function name
      */
     public String getAttributeValueSignature(int n, String key) {
-        return this.name + "_f" + n + " " + key;
+        return this.name + "F" + n + " " + key;
     }
 
     @Override
@@ -103,7 +103,7 @@ class DABCatalogRelation implements CatalogRelation {
         if (this.attributes.size() == 0)
             this.primaryKey = attribute;
         else {
-            attribute.setFunctionalView(this.name + "_f" + function_number);
+            attribute.setFunctionalView(this.name + "F" + function_number);
             function_number++;
         }
         this.attributes.add(attribute);
@@ -151,7 +151,7 @@ class DABCatalogRelation implements CatalogRelation {
         CatalogRelation catRelation = new DABCatalogRelation(this.name, this.dataSchema);
         //cat_relation.setDbTable(alias);
         for (Attribute att : this.attributes) {
-            catRelation.addAttribute(alias.getAlias() + "_" + att.getName(), att.getSort());
+            catRelation.addAttribute(alias.getAlias() +  att.getName(), att.getSort());
         }
         return catRelation;
     }
@@ -178,7 +178,7 @@ class DABCatalogRelation implements CatalogRelation {
         int function_number = 0;
         for (Attribute attr : attributes) {
             if (function_number != 0)
-                result += ":smt (define " + this.name + "_f" + function_number + ":: (->" + this.primaryKey.getSort().toString() + " " + attr.getSort().toString() + "))\n";
+                result += ":smt (define " + this.name + "F" + function_number + " ::(-> " + this.primaryKey.getSort().toString() + " " + attr.getSort().toString() + "))\n";
             function_number++;
         }
         return result;

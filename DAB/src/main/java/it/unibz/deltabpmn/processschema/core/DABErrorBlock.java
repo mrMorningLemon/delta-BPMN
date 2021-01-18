@@ -12,6 +12,7 @@ import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ErrorBlock;
 import it.unibz.deltabpmn.processschema.blocks.Task;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 
 //ToDo: add support for possible completion block (maybe add an empty block class)
@@ -26,22 +27,24 @@ public class DABErrorBlock implements ErrorBlock {
 
     //public DABErrorBlock(String name, Block handler, DataSchema schema) {
     public DABErrorBlock(String name, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         //this.handler = handler;
+        this.cond = new ConjunctiveSelectQuery();
         this.subBlocks = new Block[1];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 
     //public DABErrorBlock(String name, Block handler, ConjunctiveSelectQuery cond, DataSchema schema) {
     public DABErrorBlock(String name, ConjunctiveSelectQuery cond, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         //this.handler = handler;
         this.cond = cond;
         this.subBlocks = new Block[1];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
+        this.lifeCycle.setLifeCycle(1);
     }
 
 //    @Override

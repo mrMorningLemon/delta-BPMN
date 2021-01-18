@@ -11,6 +11,7 @@ import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ExclusiveChoiceBlock;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 class DABExclusiveChoiceBlock implements ExclusiveChoiceBlock {
 
@@ -21,10 +22,10 @@ class DABExclusiveChoiceBlock implements ExclusiveChoiceBlock {
     private ConjunctiveSelectQuery cond;
 
     public DABExclusiveChoiceBlock(String name, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.subBlocks = new Block[2];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 

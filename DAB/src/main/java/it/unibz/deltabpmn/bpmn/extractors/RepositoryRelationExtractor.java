@@ -25,7 +25,7 @@ public final class RepositoryRelationExtractor {
             String repositoryDeclText = repositoryDecl.getTextContent();
             for (String decl : repositoryDeclText.split(";")) {
                 int index = decl.indexOf('(');
-                String repRelationName = decl.substring(0, index);
+                String repRelationName = decl.substring(0, index).trim();
                 RepositoryRelation repRelation = dataSchema.newRepositoryRelation(repRelationName);
                 String attributes = decl.substring(index + 1, decl.length() - 1);
                 //start extracting attributes

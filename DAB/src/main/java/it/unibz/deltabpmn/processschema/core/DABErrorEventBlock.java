@@ -14,6 +14,7 @@ import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ErrorEventBlock;
 import it.unibz.deltabpmn.processschema.blocks.Event;
 import it.unibz.deltabpmn.processschema.blocks.Task;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 
 //ToDo: this is an optimization block that we shouldn't consider in the first version of the translator!
@@ -26,11 +27,11 @@ public class DABErrorEventBlock implements ErrorEventBlock {
     private Block handler;
 
     public DABErrorEventBlock(String name, Block handler, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.handler = handler;
         this.subBlocks = new Block[2];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, this.dataSchema.newSort("String_sort"), true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 

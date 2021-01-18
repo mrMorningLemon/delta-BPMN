@@ -131,7 +131,7 @@ class DABRepositoryRelation implements RepositoryRelation {
         int attr_num = 1;
 
         for (Attribute attr : attributes) {
-            result += "(= " + this.name + attr_num + "[x] " + SystemConstants.NULL.getName() + "_" + attr.getSort().getSortName() + ") ";
+            result += "(= " + this.name + attr_num + "[x] " + SystemConstants.NULL.getName()  + attr.getSort().getSortName() + ") ";
             attr_num++;
         }
 //        for (DABAttribute attr : attributes)

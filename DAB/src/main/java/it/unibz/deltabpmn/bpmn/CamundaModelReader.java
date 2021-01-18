@@ -6,10 +6,12 @@ import it.unibz.deltabpmn.bpmn.extractors.RepositoryRelationExtractor;
 import it.unibz.deltabpmn.bpmn.parsers.GatewayConditionParser;
 import it.unibz.deltabpmn.bpmn.parsers.SafetyPropertyParser;
 import it.unibz.deltabpmn.bpmn.parsers.UpdateExpressionParser;
+import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.processschema.blocks.*;
 import it.unibz.deltabpmn.processschema.core.ProcessSchema;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 import it.unibz.deltabpmn.verification.mcmt.translation.DABProcessTranslator;
 import org.camunda.bpm.model.bpmn.Bpmn;
 import org.camunda.bpm.model.bpmn.impl.instance.ServiceTaskImpl;
@@ -61,10 +63,12 @@ public class CamundaModelReader {
         this.dataSchema = RepositoryRelationExtractor.extract(this.modelInstance, this.dataSchema);
 
         this.processSchema = new ProcessSchema(dataSchema);
-        this.processName = file.getName().replaceAll("(.bpmn)*", "");
+        //remove unsopported elements from the process name
+        this.processName = NameManager.normaliseName(file.getName().replaceAll("(.bpmn)*", ""));
         this.dabProcess = processSchema.newProcessBlock(processName);
         bpmnModelExplorer();
         this.dabProcess.addBlock(this.stackBlocks.pop());
+
         //get property to verify
         ExtensionElements extensionElements = modelInstance.getModelElementsByType(Process.class).iterator().next().getExtensionElements();
         if (extensionElements == null)
@@ -89,7 +93,7 @@ public class CamundaModelReader {
         List<DABProcessTranslator> processTranslators = new ArrayList<>();
         int cnt = 1;
         for (ConjunctiveSelectQuery property : this.propertiesToVerify) {
-            DABProcessTranslator processTranslator = new DABProcessTranslator(processName + "_" + cnt, this.dabProcess, this.dataSchema);
+            DABProcessTranslator processTranslator = new DABProcessTranslator(processName + cnt, this.dabProcess, this.dataSchema);
             processTranslator.setSafetyFormula(property);
             processTranslators.add(processTranslator);
             cnt++;
@@ -111,12 +115,13 @@ public class CamundaModelReader {
 
         //2. find all boundary events and generate a map of activities attached to them
         Map<Activity, BoundaryEvent> boundaryEventMap = new HashMap<>();
+        //needed for locating sub-processes
         Collection<BoundaryEvent> boundaryEvents = modelInstance.getModelElementsByType(BoundaryEvent.class);
         for (BoundaryEvent event : boundaryEvents)
             boundaryEventMap.put(event.getAttachedTo(), event);
 
         //3. initialize the queue, prepare a set of visited nodes and a current node
-        bpmnNodeQueue.add(start);
+        this.bpmnNodeQueue.add(start);
         FlowNode currentNode;
 
         //4. run the breadth-first traversal
@@ -137,6 +142,9 @@ public class CamundaModelReader {
                     bpmnNodeQueue.addAll(currentNode.getChildElementsByType(StartEvent.class));
                 }
 
+                //****************************************
+                //process a START Event
+                //****************************************
                 if (currentNode instanceof StartEventImpl) {
                     newFrontier.stream().forEach(c -> bpmnNodeQueue.addLast(c));
                     visitedNodes.add(currentNode);
@@ -145,9 +153,10 @@ public class CamundaModelReader {
                     //System.out.println("BLOCK: Process");
                     //stackBlocks.push(currentNode);//this might not be even needed as start events are currently treated as labels
                 }
+                //****************************************
 
                 //****************************************
-                //process a Catch Event
+                //process a CATCH Event
                 //****************************************
                 if (currentNode instanceof CatchEvent && !currentNode.getIncoming().isEmpty() && !currentNode.getOutgoing().isEmpty()) {
                     // --> (E) -->
@@ -175,9 +184,10 @@ public class CamundaModelReader {
                     //start parsing the task data update (if any is available)
                     it.unibz.deltabpmn.processschema.blocks.Task taskBlock = null;
                     ExtensionElements extensionElements = currentNode.getExtensionElements();
-                    if (extensionElements != null)
-                        taskBlock = processSchema.newTask(currentNode.getId(), UpdateExpressionParser.parse(currentNode.getId(), extensionElements, dataSchema));
-                    else
+                    if (extensionElements != null) {
+                        ComplexTransition transition = UpdateExpressionParser.parse(currentNode.getId(), extensionElements, dataSchema);
+                        taskBlock = processSchema.newTask(currentNode.getId(), transition);
+                    } else
                         taskBlock = processSchema.newTask(currentNode.getId());
                     stackBlocks.push(taskBlock);
                     //this.taskBlockCounter++;
@@ -255,14 +265,14 @@ public class CamundaModelReader {
                         //use this gate to generate a second block of the LOOP
                         XORLoopGate iterationGate = this.visitedLoopGates.pop();
                         while (stackBlocks.search(iterationGate) > 2) {
-                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + this.seqBlockCounter);
+                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQBlock" + this.seqBlockCounter);
                             newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
                             newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
                             stackBlocks.push(newSequenceBlock);
                             this.seqBlockCounter++;
                         }
                         //now assemble the whole LOOP block
-                        LoopBlock newLOOPBlock = processSchema.newLoopBlock("LOOPblock" + loopBlockCounter, iterationGate.getCondition());
+                        LoopBlock newLOOPBlock = processSchema.newLoopBlock("LOOPBlock" + loopBlockCounter, iterationGate.getCondition());
                         newLOOPBlock.addSecondBlock(stackBlocks.pop());//add second block
                         stackBlocks.pop();//remove (X)_LF2
                         newLOOPBlock.addFirstBlock(stackBlocks.pop());//add first block
@@ -295,7 +305,7 @@ public class CamundaModelReader {
                         XORLoopGate openGate = visitedLoopGates.pop();
                         //generate from all the visited blocks in the first part of the loop a single block
                         while (stackBlocks.search(openGate) > 2) {
-                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + this.seqBlockCounter);
+                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQBlock" + this.seqBlockCounter);
                             newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
                             newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
                             stackBlocks.push(newSequenceBlock);
@@ -332,8 +342,6 @@ public class CamundaModelReader {
                         this.bpmnNodeQueue.addFirst(newFrontier.get(0));
                     }
                 }
-
-
                 //****************************************
 
 
@@ -344,7 +352,7 @@ public class CamundaModelReader {
                 //and create a sequence of chained pairs
                 if (currentNode instanceof EndEvent && stackBlocks.size() > 1) {
                     while (stackBlocks.size() > 1) {
-                        SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + this.seqBlockCounter);
+                        SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQBlock" + this.seqBlockCounter);
                         newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
                         newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
                         stackBlocks.push(newSequenceBlock);
@@ -384,4 +392,7 @@ public class CamundaModelReader {
         }
         return false;
     }
+
+
 }
+

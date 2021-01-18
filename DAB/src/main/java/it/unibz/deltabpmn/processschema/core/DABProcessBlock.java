@@ -11,6 +11,7 @@ import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ProcessBlock;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 class DABProcessBlock implements ProcessBlock {
 
@@ -22,18 +23,18 @@ class DABProcessBlock implements ProcessBlock {
     private DataSchema dataSchema;
 
     public DABProcessBlock(String name, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.subBlocks = new Block[1];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 
     public DABProcessBlock(String name, InsertTransition ins, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.setTrans = ins;
         this.subBlocks = new Block[1];
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
     }
 
 

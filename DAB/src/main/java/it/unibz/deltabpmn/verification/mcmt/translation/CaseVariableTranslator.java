@@ -45,7 +45,7 @@ class CaseVariableTranslator implements MCMTCaseVariables {
                 if (v.getSort().toString().equals("bool"))
                     result += "(= " + v.toString() + " false) ";
                 else
-                    result += "(= " + v.toString() + " NULL_" + v.getSort().toString() + ") ";
+                    result += "(= " + v.toString() + " NULL" + v.getSort().toString() + ") ";
             }
         }
         return result;

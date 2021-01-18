@@ -117,7 +117,7 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         newConstant(State.ACTIVE_ALL.getName(), State.ACTIVE_ALL.getSort());
         newConstant(SystemConstants.TRUE.getName(), SystemConstants.FALSE.getSort());
         newConstant(SystemConstants.FALSE.getName(), SystemConstants.FALSE.getSort());
-        newConstant(SystemConstants.NULL.getName(), SystemConstants.NULL.getSort());
+        //newConstant(SystemConstants.NULL.getName(), SystemConstants.NULL.getSort());
     }
 
     @Override

@@ -13,6 +13,7 @@ import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ForwardExceptionBlock;
 import it.unibz.deltabpmn.processschema.blocks.Task;
+import it.unibz.deltabpmn.verification.mcmt.NameManager;
 
 class DABForwardExceptionBlock implements ForwardExceptionBlock {
 
@@ -23,10 +24,10 @@ class DABForwardExceptionBlock implements ForwardExceptionBlock {
     private Constant error;
 
     public DABForwardExceptionBlock(String name, DataSchema schema) {
-        this.name = name;
+        this.name = NameManager.normaliseName(name);
         this.subBlocks = new Block[3];
         this.dataSchema = schema;
-        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle_" + name, SystemSorts.STRING, true);
+        this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
 

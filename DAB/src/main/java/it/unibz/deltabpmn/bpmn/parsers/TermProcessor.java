@@ -1,6 +1,7 @@
 package it.unibz.deltabpmn.bpmn.parsers;
 
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
+import it.unibz.deltabpmn.dataschema.core.SystemConstants;
 import it.unibz.deltabpmn.dataschema.elements.Term;
 
 class TermProcessor {
@@ -21,6 +22,8 @@ class TermProcessor {
             t = dataSchema.getAllAttributes().get(el);
         if (isConstant(el, dataSchema))
             t = dataSchema.getConstants().get(el);
+        if (isNull(el))
+            t = SystemConstants.NULL;
         if (isCaseVariable(el, dataSchema))
             t = dataSchema.getCaseVariableAssociations().get(el);
         if (isInteger(el))
@@ -38,6 +41,10 @@ class TermProcessor {
 
     private static boolean isCaseVariable(String el, DataSchema dataSchema) {
         return dataSchema.getCaseVariableAssociations().keySet().contains(el);
+    }
+
+    private static boolean isNull(String el){
+        return el.toLowerCase().equals("null");
     }
 
     private static boolean isInteger(String el) {
