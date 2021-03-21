@@ -3,6 +3,7 @@ package it.unibz.deltabpmn.verification.mcmt.translation;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.datalogic.EevarManager;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
+import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
@@ -81,6 +82,9 @@ public final class DABProcessTranslator {
     }
 
     private void generateDeclarationStatements() {
+        //special treatment for integers
+        this.dataSchema.removeSort(SystemSorts.INT);
+        pw.println(":index int \n");
         pw.println(this.dataSchemaTranslator.Sorts().getAllElementDefinitions());
         pw.println(this.dataSchemaTranslator.CatalogRelations().getAllElementDeclarations());
         pw.println(this.dataSchemaTranslator.Constants().getAllElementDefinitions());

@@ -42,7 +42,7 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         //a map for collecting data about the attributes of all the relations
         this.attributes = new HashMap<>();
         //create a special lifecylce variable for managing empty Blocks
-        newCaseVariable(SystemVariables.EMPTY.getName(),SystemVariables.EMPTY.getSort(),SystemVariables.EMPTY.isOneCase());
+        newCaseVariable(SystemVariables.EMPTY.getName(), SystemVariables.EMPTY.getSort(), SystemVariables.EMPTY.isOneCase());
     }
 
     /**
@@ -105,6 +105,10 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         sorts.put(SystemSorts.BOOL.getSortName(), SystemSorts.BOOL);
         sorts.put(SystemSorts.INT.getSortName(), SystemSorts.INT);
         sorts.put(SystemSorts.STRING.getSortName(), SystemSorts.STRING);
+    }
+
+    public void removeSort(Sort sort) {
+        this.sorts.remove(sort.getSortName());
     }
 
     /**
