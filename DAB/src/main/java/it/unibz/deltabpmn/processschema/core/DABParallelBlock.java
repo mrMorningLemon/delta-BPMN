@@ -83,4 +83,15 @@ class DABParallelBlock implements ParallelBlock {
         return this.subBlocks;
     }
 
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABParallelBlock))
+            return false;
+        DABParallelBlock obj = (DABParallelBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
+
 }

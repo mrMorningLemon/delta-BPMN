@@ -99,7 +99,7 @@ class DABTask implements Task {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(this instanceof DABTask))
+        if (!(o instanceof DABTask))
             return false;
         DABTask obj = (DABTask) o;
         return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());

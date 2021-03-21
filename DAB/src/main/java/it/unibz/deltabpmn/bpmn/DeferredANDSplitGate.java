@@ -1,36 +1,23 @@
 package it.unibz.deltabpmn.bpmn;
 
-import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 
-public class XORLoopGate implements Block {
+public class DeferredANDSplitGate implements Block {
 
-    private final String name = "(X)_F";
+    private final String name = "(+)_F";
     private String id;
-    private ConjunctiveSelectQuery condition;
 
 
-    public XORLoopGate(String id, ConjunctiveSelectQuery condition) {
+    public DeferredANDSplitGate(String id) {
         this.id = id;
-        this.condition = condition;
-    }
-
-
-    public XORLoopGate(String id) {
-        this.id = id;
-        this.condition = null;
     }
 
     public String getId() {
         return this.id;
-    }
-
-    public ConjunctiveSelectQuery getCondition() {
-        return this.condition;
     }
 
     @Override
@@ -38,7 +25,7 @@ public class XORLoopGate implements Block {
         try {
             throw new UnsupportedOperationException();
         } catch (UnsupportedOperationException ex) {
-            System.out.println("Method not supported for XOR gates [" + this.id + "]: they can't set case variable values!");
+            System.out.println("Method not supported for AND gates [" + this.id + "]: they can't set case variable values!");
         }
         return null;
     }
@@ -53,7 +40,7 @@ public class XORLoopGate implements Block {
         try {
             throw new UnsupportedOperationException();
         } catch (UnsupportedOperationException ex) {
-            System.out.println("Method not supported for XOR gates [" + this.id + "]: they can't set case variable values!");
+            System.out.println("Method not supported for AND gates [" + this.id + "]: they can't set case variable values!");
         }
         return null;
     }
@@ -63,7 +50,7 @@ public class XORLoopGate implements Block {
         try {
             throw new UnsupportedOperationException();
         } catch (UnsupportedOperationException ex) {
-            System.out.println("Method not supported for XOR gates [" + this.id + "]: they can't set case variable values!");
+            System.out.println("Method not supported for AND gates [" + this.id + "]: they can't set case variable values!");
         }
         return null;
     }
@@ -82,9 +69,11 @@ public class XORLoopGate implements Block {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(o instanceof XORLoopGate))
+        if (!(o instanceof DeferredANDSplitGate))
             return false;
-        XORLoopGate obj = (XORLoopGate) o;
+        DeferredANDSplitGate obj = (DeferredANDSplitGate) o;
         return id.equals(obj.getId());
     }
 }
+
+

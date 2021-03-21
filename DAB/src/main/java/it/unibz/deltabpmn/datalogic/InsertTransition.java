@@ -8,6 +8,7 @@ import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.core.State;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -84,12 +85,16 @@ public class InsertTransition implements ComplexTransition {
                 for (int i = 0; i < relation.arity(); i++) {
                     // control if it is eevar or constant; if not, throw an exception
                     boolean eevar = this.eevarAssociation.containsKey(values[i].getName());
-                    if (!eevar && !this.dataSchema.getConstants().containsKey(values[i].getName()))
+                    boolean caseVar = this.dataSchema.getCaseVariableAssociations().keySet().contains(values[i].getName());
+                    if (!eevar && !caseVar && !this.dataSchema.getConstants().containsKey(values[i].getName()) && !values[i].getName().toLowerCase().equals("null"))
                         throw new InvalidInputException(values[i].getName() + " is neither an answer of the precondition nor a constant");
+
 
                     // control the sorts of eevars/constants in the SELECT statement to see if they match those of the relation they reference to
                     if (eevar)
                         checkEevarSorts(relation.getAttributeByIndex(i).getSort().getSortName(), values[i].getName());
+                    else if(caseVar)
+                        checkCaseVarSorts(relation.getAttributeByIndex(i).getSort().getSortName(), values[i].getName());
                     else
                         checkConstantSorts(relation.getAttributeByIndex(i).getSort().getSortName(), values[i].getName());
 
@@ -100,9 +105,14 @@ public class InsertTransition implements ComplexTransition {
 
                     if (eevar)
                         this.localUpdate += ":val " + this.eevarAssociation.get(values[i].getName()) + "\n";
-                    else
-                        this.localUpdate += ":val " + values[i].getName() + "\n"; //if it's not an eevar and there was no exception generated, then it's a constant
-
+                    else if (caseVar)
+                        this.localUpdate += ":val " + values[i].getName() + "\n";
+                    else {//if it's not an eevar and there was no exception generated, then it's a constant
+                        if (values[i].getName().toLowerCase().equals("null"))//manage separately NULLs
+                            this.localUpdate += ":val " + SystemConstants.NULL.getName() + "_" + relation.getAttributeByIndex(i).getSort().getSortName() + "\n";
+                        else
+                            this.localUpdate += ":val " + values[i].getName() + "\n";
+                    }
                     this.localStatic += ":val " + rep.getName() + (i + 1) + "[j]\n";
                 }
             } else {
@@ -122,11 +132,17 @@ public class InsertTransition implements ComplexTransition {
             throw new UnmatchingSortException("No matching between sorts: " + elementSortName + " VS " + EevarManager.getSortByVariable(this.eevarAssociation.get(varName)).getSortName());
     }
 
+    //A method that throws an exception if a given variable sort does not match with a sort of some given element.
+    private void checkCaseVarSorts(String elementSortName, String varName) throws UnmatchingSortException {
+        if (!elementSortName.equals(this.dataSchema.getCaseVariableAssociations().get(varName).getSort().getSortName()))
+            throw new UnmatchingSortException("No matching between sorts: " + elementSortName + " VS " + this.dataSchema.getCaseVariableAssociations().get(varName).getSort().getSortName());
+    }
+
     //A method that throws an exception if a given eevar sort does not match with a sort of some given element.
     private void checkConstantSorts(String elementSortName, String constantName) throws UnmatchingSortException {
-        if (!elementSortName.equals(this.dataSchema.getConstants().get(constantName).getSort().getSortName())) {
-            throw new UnmatchingSortException("No matching between sorts: " + elementSortName + " VS " + this.dataSchema.getConstants().get(constantName).getSort().getSortName());
-        }
+        if (!constantName.toLowerCase().equals("null"))
+            if (!elementSortName.equals(this.dataSchema.getConstants().get(constantName).getSort().getSortName()))
+                throw new UnmatchingSortException("No matching between sorts: " + elementSortName + " VS " + this.dataSchema.getConstants().get(constantName).getSort().getSortName());
     }
 
 
@@ -192,6 +208,68 @@ public class InsertTransition implements ComplexTransition {
     }
 
 
+    @Override
+    /**
+     * A method that adds an assignment expression of the form {@code x = v} into the set part ({@code SET x1 = v1,...,xn = vn}) of the insert transition.
+     * Informally, this expression updates the value of the case variable {@code x} by assigning to it a value from one of the newly defined variables
+     * appearing in [var v : Type] statements of the transition.
+     *
+     * @param variable  The case variable {@code x}.
+     * @param newVar The new variable that has been defined appeared in the update block.
+     * @throws InvalidInputException
+     * @throws UnmatchingSortException
+     */
+    public void setControlCaseVariableValue(CaseVariable variable, CaseVariable newVar) throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+        // first step: control that the case variable is in the collection of changes
+        // insert it if it is not present
+        if (this.setTable.containsKey(variable)) {
+            System.out.println("CaseVariable already set " + variable.getName() + " in " + this.name);
+            return;
+        }
+        //check if the new variable assigned is an eevar
+        String varName = newVar.getName();
+        if (!eevarAssociation.containsKey(varName))
+            addReferenceVariable(newVar); //add the new variable to the list of eevars
+
+        //check whether sorts are matching
+        checkEevarSorts(variable.getSort().getSortName(), varName);
+
+        //populate the table of variable assignments with the x=v expression
+        this.setTable.put(variable, this.eevarAssociation.get(varName));
+    }
+
+    /**
+     * A method that performs the eevar association process.
+     *
+     * @param var The attribute for which the association process is performed.
+     * @throws EevarOverflowException
+     */
+    private void addReferenceVariable(CaseVariable var) throws EevarOverflowException {
+
+        // 1 ) check if in the global manager there are eevars with that sort
+        Collection<String> eevarAvailable = EevarManager.getEevarWithSort(var.getSort());
+
+        if (eevarAvailable.isEmpty()) {
+            // add eevar to the global eevar manager
+            String global_reference = EevarManager.addEevar(var.getSort());
+            // add association locally
+            this.eevarAssociation.put(var.getName(), global_reference);
+        }
+        // 2) process the array of eevars and see whether there is one that is free (it means it is not in the local map)
+        else {
+            for (String glb_name : eevarAvailable) {
+                // case in which current one is not already used, I can use it
+                if (!this.eevarAssociation.containsValue(glb_name)) {
+                    this.eevarAssociation.put(var.getName(), glb_name);
+                    return;
+                }
+            }
+            // case in which all eevar already used
+            String global_reference = EevarManager.addEevar(var.getSort());
+            this.eevarAssociation.put(var.getName(), global_reference);
+        }
+    }
+
     //ToDo: check whether the description of the method is correct
 
     /**
@@ -255,7 +333,7 @@ public class InsertTransition implements ComplexTransition {
         // one case
         if (this.isOneCase())
             finalMCMT += this.generateOneCaseMCMT() + "\n";
-        // two cases
+            // two cases
         else {
             if (this.precondition.isIndexPresent())
                 finalMCMT += ":numcases 2\n:case (= j y)\n";

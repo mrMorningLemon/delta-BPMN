@@ -94,4 +94,13 @@ class DABProcessBlock implements ProcessBlock {
 
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABProcessBlock))
+            return false;
+        DABProcessBlock obj = (DABProcessBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
 }

@@ -7,7 +7,7 @@ import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.processschema.blocks.*;
 import it.unibz.deltabpmn.processschema.blocks.providers.*;
 
-public final class ProcessSchema implements TaskProvider, EventProvider, ProcessBlockProvider, SequenceBlockProvider, DeferredChoiceBlockProvider, ExclusiveChoiceBlockProvider, InclusiveOrBlockProvider, LoopBlockProvider, ErrorBlockProvider, ErrorEventBlockProvider, ForwardExceptionBlockProvider, BackwardExceptionBlockProvider, ParallelBlockProvider {
+public final class ProcessSchema implements TaskProvider, EventProvider, ProcessBlockProvider, SequenceBlockProvider, DeferredChoiceBlockProvider, ExclusiveChoiceBlockProvider, InclusiveOrBlockProvider, LoopBlockProvider, PossibleCompletionProvider, ErrorEventBlockProvider, ForwardExceptionBlockProvider, BackwardExceptionBlockProvider, ParallelBlockProvider {
 
     private DataSchema dataSchema;
 
@@ -86,13 +86,13 @@ public final class ProcessSchema implements TaskProvider, EventProvider, Process
 //    }
 
     @Override
-    public ErrorBlock newErrorBlock(String name) {
-        return new DABErrorBlock(name, this.dataSchema);
+    public PossibleCompletion newPossibleCompletion(String name) {
+        return new DABPossibleCompletionBlock(name, this.dataSchema);
     }
 
     @Override
-    public ErrorBlock newErrorBlock(String name, ConjunctiveSelectQuery cond) {
-        return new DABErrorBlock(name, cond, this.dataSchema);
+    public PossibleCompletion newPossibleCompletion(String name, ConjunctiveSelectQuery cond) {
+        return new DABPossibleCompletionBlock(name, cond, this.dataSchema);
     }
 
     @Override

@@ -6,6 +6,8 @@ import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
+import it.unibz.deltabpmn.processschema.blocks.Event;
+import it.unibz.deltabpmn.processschema.blocks.Task;
 
 class XORSplitGate implements Block {
 
@@ -76,7 +78,7 @@ class XORSplitGate implements Block {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(this instanceof Block))
+        if (!(o instanceof XORSplitGate))
             return false;
         XORSplitGate obj = (XORSplitGate) o;
         return id.equals(obj.getId());

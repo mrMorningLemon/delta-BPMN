@@ -136,4 +136,14 @@ class DABBackwardExceptionBlock implements BackwardExceptionBlock {
     public Block[] getSubBlocks() {
         return this.subBlocks;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABBackwardExceptionBlock))
+            return false;
+        DABBackwardExceptionBlock obj = (DABBackwardExceptionBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
 }

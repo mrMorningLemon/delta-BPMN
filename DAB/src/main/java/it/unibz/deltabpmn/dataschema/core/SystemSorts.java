@@ -9,7 +9,7 @@ import it.unibz.deltabpmn.dataschema.elements.Sort;
  */
 public final class SystemSorts {
     public static final Sort STRING = new DABSort("StringSort");
-    public static final Sort BOOL = new DABSort("boolean");
+    public static final Sort BOOL = new DABSort("Bool");
     public static final Sort INT = new DABSort("int");
 
     private SystemSorts() {

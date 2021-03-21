@@ -33,6 +33,7 @@ class DABLoopBlock implements LoopBlock {
         this.name = NameManager.normaliseName(name);
         this.cond = cond;
         this.subBlocks = new Block[2];
+        this.dataSchema = schema;
         this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
     }
@@ -110,5 +111,15 @@ class DABLoopBlock implements LoopBlock {
     @Override
     public Block[] getSubBlocks() {
         return this.subBlocks;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABLoopBlock))
+            return false;
+        DABLoopBlock obj = (DABLoopBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
     }
 }

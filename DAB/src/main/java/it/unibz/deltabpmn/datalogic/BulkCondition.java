@@ -239,6 +239,8 @@ public class BulkCondition {
         }
         //ToDo: what are these controls needed for??
 
+        if (!eevarAssociation.containsKey(newValue) && !dataSchema.getConstants().containsKey(newValue))
+            dataSchema.newConstant(newValue,attr.getSort());
         // control of eevar or constant newValue
         boolean eevar = isEevar(newValue);
         // control of sorts
@@ -312,6 +314,9 @@ public class BulkCondition {
      * @throws InvalidInputException Appears if the value passed as a parameter is neither an eevar nor a constant.
      */
     private boolean isEevar(String value) throws InvalidInputException {
+        //check special values
+        if (value.toLowerCase().equals(SystemConstants.NULL.getName().toLowerCase()) || value.toLowerCase().equals(SystemConstants.TRUE.getName().toLowerCase()) || value.toLowerCase().equals(SystemConstants.FALSE.getName().toLowerCase()))
+            return false;
         if (!eevarAssociation.containsKey(value)) {
             if (!dataSchema.getConstants().containsKey(value)) {
                 throw new InvalidInputException(value + " is not an answer of the precondition or a constant");
@@ -369,11 +374,11 @@ public class BulkCondition {
     }
 
 
-    public BulkCondition getTrueNode(){
+    public BulkCondition getTrueNode() {
         return this.true_node;
     }
 
-    public BulkCondition getFalseNode(){
+    public BulkCondition getFalseNode() {
         return this.false_node;
     }
 }

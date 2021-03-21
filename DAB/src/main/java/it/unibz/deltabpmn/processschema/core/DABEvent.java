@@ -28,6 +28,7 @@ class DABEvent implements Event {
     public DABEvent(String name, ComplexTransition eff, DataSchema schema) {
         this.name = NameManager.normaliseName(name);
         this.effect = eff;
+        this.dataSchema = schema;
         this.subBlocks = new Block[0];
         this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
@@ -71,7 +72,22 @@ class DABEvent implements Event {
     }
 
     @Override
+    public String toString() {
+        return this.name;
+    }
+
+    @Override
     public Block[] getSubBlocks() {
         return this.subBlocks;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABEvent))
+            return false;
+        DABEvent obj = (DABEvent) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
     }
 }

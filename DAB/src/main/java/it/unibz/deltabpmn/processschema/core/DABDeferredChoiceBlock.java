@@ -92,4 +92,14 @@ class DABDeferredChoiceBlock implements DeferredChoiceBlock {
     public Block[] getSubBlocks() {
         return this.subBlocks;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABDeferredChoiceBlock))
+            return false;
+        DABDeferredChoiceBlock obj = (DABDeferredChoiceBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
 }

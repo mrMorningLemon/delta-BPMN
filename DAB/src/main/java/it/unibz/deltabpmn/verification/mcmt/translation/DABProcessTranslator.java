@@ -27,7 +27,7 @@ public final class DABProcessTranslator {
         this.root.getLifeCycleVariable().setLifeCycle(2);
         this.dataSchema = dataSchema;
         try {
-            this.pw = new PrintWriter(new File(name+"_MCMT-Translation.txt"));
+            this.pw = new PrintWriter(new File(name + "_MCMT-Translation.txt"));
         } catch (FileNotFoundException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
@@ -73,6 +73,7 @@ public final class DABProcessTranslator {
         }
 
         // translation of the block, then recursively go through the depth of the tree
+        System.out.println(block.getName());
         this.total_mcmt += block.getMCMTTranslation();
         for (Block sub_block : block.getSubBlocks()) {
             processMCMTGeneration(sub_block);

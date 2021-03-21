@@ -113,4 +113,14 @@ public class DABErrorEventBlock implements ErrorEventBlock {
     public Block[] getSubBlocks() {
         return this.subBlocks;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABErrorEventBlock))
+            return false;
+        DABErrorEventBlock obj = (DABErrorEventBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
 }

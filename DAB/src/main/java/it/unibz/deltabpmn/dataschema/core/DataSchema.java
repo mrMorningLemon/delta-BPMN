@@ -41,6 +41,8 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         this.caseVariables = new HashMap<String, CaseVariable>();
         //a map for collecting data about the attributes of all the relations
         this.attributes = new HashMap<>();
+        //create a special lifecylce variable for managing empty Blocks
+        newCaseVariable(SystemVariables.EMPTY.getName(),SystemVariables.EMPTY.getSort(),SystemVariables.EMPTY.isOneCase());
     }
 
     /**
@@ -115,7 +117,7 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         newConstant(State.COMPLETED.getName(), State.COMPLETED.getSort());
         newConstant(State.ACTIVE_SINGLE.getName(), State.ACTIVE_SINGLE.getSort());
         newConstant(State.ACTIVE_ALL.getName(), State.ACTIVE_ALL.getSort());
-        newConstant(SystemConstants.TRUE.getName(), SystemConstants.FALSE.getSort());
+        newConstant(SystemConstants.TRUE.getName(), SystemConstants.TRUE.getSort());
         newConstant(SystemConstants.FALSE.getName(), SystemConstants.FALSE.getSort());
         //newConstant(SystemConstants.NULL.getName(), SystemConstants.NULL.getSort());
     }
@@ -198,7 +200,6 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
     }
 
     /**
-     *
      * @return A map with (catalog relation name, object) pairs
      */
     public Map<String, CatalogRelation> getCatalogRelationAssociations() {
@@ -214,7 +215,6 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
     }
 
     /**
-     *
      * @return A map with (repository relation name, object) pairs
      */
     public Map<String, RepositoryRelation> getRepositoryRelationAssociations() {

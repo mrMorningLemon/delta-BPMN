@@ -181,4 +181,15 @@ public class BulkUpdate implements ComplexTransition {
             System.out.println("Method not supported for bulk update [" + this.name + "]: bulk updates can't set case variable values!");
         }
     }
+
+
+    @Override
+    public void setControlCaseVariableValue(CaseVariable variable, CaseVariable newVar) throws InvalidInputException, UnmatchingSortException {
+        try {
+            throw new UnsupportedOperationException();
+        } catch (UnsupportedOperationException ex) {
+            System.out.println("Method not supported for bulk update [" + this.name + "]: bulk updates can't set case variable values!");
+        }
+    }
+
 }

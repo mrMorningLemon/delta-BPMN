@@ -15,7 +15,7 @@ public class SafetyPropertyParser {
 
     private static final String verifyKey = "verify";
 
-    public static List<ConjunctiveSelectQuery> parse(ExtensionElements extensionElements, DataSchema dataSchema) {
+    public static List<ConjunctiveSelectQuery> parse(ExtensionElements extensionElements, DataSchema dataSchema) throws Exception {
         Collection<CamundaProperty> properties = extensionElements.getElementsQuery()
                 .filterByType(CamundaProperties.class)
                 .singleResult()
@@ -33,7 +33,7 @@ public class SafetyPropertyParser {
         return toVerify;
     }
 
-    private static ConjunctiveSelectQuery parseProperty(String property, DataSchema dataSchema) {
+    private static ConjunctiveSelectQuery parseProperty(String property, DataSchema dataSchema) throws Exception {
         ConjunctiveSelectQuery query = null;
         if (property.contains("SELECT"))
             //deal with a query that contains a SELECT part

@@ -27,9 +27,10 @@ public class ConjunctiveSelectQuery {
     private boolean indexPresent = false;
     private Attribute[] selectedAttributes; //attributes that follow the SELECT statement
     private List<Relation> fromRelations;
-
+    private boolean isEmpty = false; //used for catching cases when it contains only TRUE
 
     //ToDo: make one single constructor + add methods for adding attributes into the SELECT clause
+
     /**
      * @param attributes Attributes that represent the select part of the query (that is, answer variables).
      *                   The attributes are analyzed to adjust the eevar management
@@ -70,6 +71,15 @@ public class ConjunctiveSelectQuery {
         this.tables = new HashMap<String, DbTable>();
         this.selectQuery = new SelectQuery();
         this.refManager = new HashMap<String, String>();
+        this.isEmpty = true;
+    }
+
+    /**
+     * Check if the query is trivial, i.e., contains only {@code TRUE}.
+     * @return
+     */
+    public boolean isEmpty() {
+        return this.isEmpty;
     }
 
     /**
@@ -78,7 +88,7 @@ public class ConjunctiveSelectQuery {
      * @param condition The binary condition that uses
      */
     public void addBinaryCondition(it.unibz.deltabpmn.datalogic.BinaryCondition condition) {
-
+        this.isEmpty = false;
         String leftMCMT = condition.getLeft().getName();// + "";
         String rightMCMT = condition.getRight().getName();// + "";
 
@@ -167,7 +177,7 @@ public class ConjunctiveSelectQuery {
 
             // prova
             addReferenceVariable(relation.getPrimaryKey());
-            this.MCMTRepresentation += "(not (= " + this.refManager.get(relation.getPrimaryKey().getName())
+            this.MCMTRepresentation += "(not (= " + this.refManager.get(relation.getPrimaryKey().getName()) + " "
                     + SystemConstants.NULL.getName() + "_"
                     + relation.getPrimaryKey().getSort().getSortName() +
                     ")) ";

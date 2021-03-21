@@ -39,6 +39,8 @@ class DABSequenceBlock implements SequenceBlock {
         firstUpdate.setControlCaseVariableValue(this.lifeCycle, State.ACTIVE);
         firstUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED);
 
+
+
         // second part: B1 COMPLETED --> B1 IDLE and B2 ENABLED
         ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery();
         secondGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
@@ -83,5 +85,15 @@ class DABSequenceBlock implements SequenceBlock {
     @Override
     public Block[] getSubBlocks() {
         return this.subBlocks;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABSequenceBlock))
+            return false;
+        DABSequenceBlock obj = (DABSequenceBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
     }
 }

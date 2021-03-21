@@ -14,7 +14,7 @@ import java.util.regex.Pattern;
 
 //ToDo: add correct management of the .find() method!
 public class SelectParser {
-    public static ConjunctiveSelectQuery parse(String query, DataSchema dataSchema) {
+    public static ConjunctiveSelectQuery parse(String query, DataSchema dataSchema) throws Exception {
         Pattern argumentsPattern = Pattern.compile("SELECT(.*)FROM", Pattern.DOTALL);
         Matcher argMatcher = argumentsPattern.matcher(query);
         argMatcher.find();

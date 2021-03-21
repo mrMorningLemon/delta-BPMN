@@ -68,9 +68,9 @@ public class XORLoopSplitGate implements Block {
     public boolean equals(Object o) {
         if (this == o)
             return true;
-        if (!(this instanceof Block))
+        if (!(o instanceof XORLoopSplitGate))
             return false;
-        XORSplitGate obj = (XORSplitGate) o;
+        XORLoopSplitGate obj = (XORLoopSplitGate) o;
         return id.equals(obj.getId());
     }
 }

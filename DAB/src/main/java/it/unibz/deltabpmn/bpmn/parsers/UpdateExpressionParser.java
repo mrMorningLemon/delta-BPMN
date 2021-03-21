@@ -4,6 +4,8 @@ import it.unibz.deltabpmn.bpmn.utils.SQL.SelectParser;
 import it.unibz.deltabpmn.datalogic.*;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.elements.Attribute;
+import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
+import it.unibz.deltabpmn.dataschema.elements.Constant;
 import it.unibz.deltabpmn.dataschema.elements.Term;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
@@ -50,7 +52,11 @@ public class UpdateExpressionParser {
         //3. parse the precondition
         ConjunctiveSelectQuery query = null;
         if (!precondition.trim().equals("TRUE")) {
-            query = parsePrecondition(precondition, dataSchema);
+            if (precondition.trim().isEmpty())
+                System.out.println("empty precondition from task/event " + taskName);
+//                query = new ConjunctiveSelectQuery();//
+            else
+                query = parsePrecondition(precondition, dataSchema);
         }
         //4. parse one of the effect types and generate the final transition object (NB: if we have only variables to set, then this is going to be an insert transition; otherwise, variable updates have to be added to a created transition)
         //ToDo always check if query is null
@@ -59,6 +65,7 @@ public class UpdateExpressionParser {
                 effects.stream().filter(str -> str.contains("DELETE")).findAny().orElse("") +
                 effects.stream().filter(str -> str.contains("UPDATE")).findAny().orElse("");
 
+        //if (effects.stream().anyMatch(str -> str.contains("INSERT")))
         if (mainStatement.contains("INSERT")) {
             if (query == null)
                 transition = new InsertTransition(taskName + "INSERT", dataSchema);
@@ -67,7 +74,7 @@ public class UpdateExpressionParser {
             Pair<Term[], String> insertComponents = parseInsertExpression(mainStatement, dataSchema);
             ((InsertTransition) transition).insert(dataSchema.getRepositoryRelationAssociations().get(insertComponents.getValue()), insertComponents.getKey());
         }
-        //if (effects.stream().anyMatch(str -> str.contains("DELETE"))) {
+        //if (effects.stream().anyMatch(str -> str.contains("DELETE")))
         if (mainStatement.contains("DELETE")) {
             if (query == null)
                 transition = new DeleteTransition(taskName + "DELETE", dataSchema);
@@ -76,19 +83,44 @@ public class UpdateExpressionParser {
             Pair<Term[], String> deleteComponents = parseDeleteExpression(mainStatement, dataSchema);
             ((DeleteTransition) transition).delete(dataSchema.getRepositoryRelationAssociations().get(deleteComponents.getValue()), deleteComponents.getKey());
         }
-        //if (effects.stream().anyMatch(str -> str.contains("UPDATE"))) {
+        //if (effects.stream().anyMatch(str -> str.contains("UPDATE")))
         if (mainStatement.contains("UPDATE")) {
             //manage the update statement
             transition = parseUpdateExpression(query, taskName + "UPDATE", mainStatement, dataSchema);
+        }
+
+        //remove from effects the processes string and generate
+        effects.remove(mainStatement);
+
+        //deal with process variable updates (if any)
+        if (transition == null) {//if transition hasn't been created, create a simple insert transition (the type of transition doesn't matter as we need to update variable values only)
+            if (query == null)
+                transition = new InsertTransition(taskName + "SET", dataSchema);
+            else transition = new InsertTransition(taskName + "SET", query, dataSchema);
+        }
+        for (String update : effects) {
+            transition = parseVariableUpdate(update, dataSchema, transition);
         }
         return transition;
     }
 
 
-    private static void parseVariableUpdate(String effect, DataSchema dataSchema) {
+    private static ComplexTransition parseVariableUpdate(String effect, DataSchema dataSchema, ComplexTransition transition) throws Exception {
         String[] operands = effect.split("=");
-        Term first = TermProcessor.processTerm(operands[0].substring(1, operands[0].length()).trim(), dataSchema);//first element is always # for case variables
+        CaseVariable first = (CaseVariable) TermProcessor.processTerm(operands[0].trim(), dataSchema);//first element is always # for case variables
         Term second = TermProcessor.processTerm(operands[1].trim(), dataSchema);
+        if (second instanceof Constant)
+            transition.setControlCaseVariableValue(first, (Constant) second);
+        else if (second instanceof Attribute)
+            transition.setControlCaseVariableValue(first, (Attribute) second);
+        else if (second instanceof CaseVariable)
+            transition.setControlCaseVariableValue(first, (CaseVariable) second);
+        else if (second == null) {
+            //else, it's a constant that we don't know about ==> add it to dataSchema
+            Constant c = dataSchema.newConstant(operands[1].trim(), first.getSort());
+            transition.setControlCaseVariableValue(first, c);
+        }
+        return transition;
     }
 
     //returns a pair consisting of values to be deleted and the name of the relation appearing in the FROM clause
@@ -122,7 +154,7 @@ public class UpdateExpressionParser {
             String[] values = argMatcher.group(1).split(",");
             toInsert = new Term[values.length];
             for (int i = 0; i < values.length; i++)
-                toInsert[i] = TermProcessor.processTerm(values[i], dataSchema);
+                toInsert[i] = TermProcessor.processTerm(values[i].trim(), dataSchema);
         } else throw new Exception("Empty INSERT clause!");
         String relationName;
         Pattern intoPattern = Pattern.compile("INTO(.*)", Pattern.DOTALL);
@@ -154,7 +186,7 @@ public class UpdateExpressionParser {
         //extract elements that have to be updated
         //List<String> referenceVariables = new ArrayList<>();
         Map<String, Attribute> refVaribaleAttributeAssociations = new HashMap<>();
-        Pattern updVarsPattern = Pattern.compile("SET(.*)CASE", Pattern.DOTALL);
+        Pattern updVarsPattern = Pattern.compile("SET(.*)WHERE", Pattern.DOTALL);
         Matcher updVarsMatcher = updVarsPattern.matcher(updateExpr);
         if (updVarsMatcher.find()) {
             //extract attributes from the SET clause
@@ -208,7 +240,7 @@ public class UpdateExpressionParser {
         //return node;
     }
 
-    private static ConjunctiveSelectQuery parsePrecondition(String precondition, DataSchema dataSchema) {
+    private static ConjunctiveSelectQuery parsePrecondition(String precondition, DataSchema dataSchema) throws Exception {
         ConjunctiveSelectQuery query = null;
         if (precondition.contains("SELECT"))
             //deal with a query that contains a SELECT part
@@ -224,8 +256,9 @@ public class UpdateExpressionParser {
 
     private static DataSchema parseVariableDeclarations(String declaration, DataSchema dataSchema) {
         String[] declarationElements = declaration.split(":");
-        System.out.println("name: " + declarationElements[0].trim());
-        System.out.println("sort: " + declarationElements[1].trim());
+        System.out.println("new variable name: " + declarationElements[0].trim());
+        System.out.println("new variable sort: " + declarationElements[1].trim());
+        System.out.println();
         //we would actually need to create here a new case variable
         dataSchema.newCaseVariable(declarationElements[0].trim(), dataSchema.newSort(declarationElements[1].trim()), true);
         return dataSchema;

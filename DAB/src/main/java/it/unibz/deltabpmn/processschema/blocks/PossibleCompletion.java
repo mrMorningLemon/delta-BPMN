@@ -1,9 +1,12 @@
 package it.unibz.deltabpmn.processschema.blocks;
 
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
+import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
 
-public interface ErrorBlock extends Block {
-    //void addBlock(Block b);
+public interface PossibleCompletion extends Block {
+
+
+    void addMainProcessLifecycleVariable(CaseVariable global);
 
     void addCondition(ConjunctiveSelectQuery cond);
 

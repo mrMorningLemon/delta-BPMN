@@ -4,10 +4,12 @@ package it.unibz.deltabpmn.datalogic;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemConstants;
 import it.unibz.deltabpmn.dataschema.elements.*;
+import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.core.State;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -171,6 +173,68 @@ public class DeleteTransition implements ComplexTransition {
 
         //populate the table of variable assignments with the x=v expression
         this.setTable.put(variable, this.eevarAssociation.get(attr.getName()));
+    }
+
+    @Override
+    /**
+     * A method that adds an assignment expression of the form {@code x = v} into the set part ({@code SET x1 = v1,...,xn = vn}) of the insert transition.
+     * Informally, this expression updates the value of the case variable {@code x} by assigning to it a value from one of the newly defined variables
+     * appearing in [var v : Type] statements of the transition.
+     *
+     * @param variable  The case variable {@code x}.
+     * @param newVar The new variable that has been defined appeared in the update block.
+     * @throws InvalidInputException
+     * @throws UnmatchingSortException
+     */
+    public void setControlCaseVariableValue(CaseVariable variable, CaseVariable newVar) throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+        // first step: control that the case variable is in the collection of changes
+        // insert it if it is not present
+        if (this.setTable.containsKey(variable)) {
+            System.out.println("CaseVariable already set " + variable.getName() + " in " + this.name);
+            return;
+        }
+        //check if the new variable assigned is an eevar
+        String varName = newVar.getName();
+        if (!eevarAssociation.containsKey(varName))
+            addReferenceVariable(newVar); //add the new variable to the list of eevars
+
+        //check whether sorts are matching
+        checkEevarSorts(variable.getSort().getSortName(), varName);
+
+        //populate the table of variable assignments with the x=v expression
+        this.setTable.put(variable, this.eevarAssociation.get(varName));
+    }
+
+    /**
+     * A method that performs the eevar association process.
+     *
+     * @param var The attribute for which the association process is performed.
+     * @throws EevarOverflowException
+     */
+    private void addReferenceVariable(CaseVariable var) throws EevarOverflowException {
+
+        // 1 ) check if in the global manager there are eevars with that sort
+        Collection<String> eevarAvailable = EevarManager.getEevarWithSort(var.getSort());
+
+        if (eevarAvailable.isEmpty()) {
+            // add eevar to the global eevar manager
+            String global_reference = EevarManager.addEevar(var.getSort());
+            // add association locally
+            this.eevarAssociation.put(var.getName(), global_reference);
+        }
+        // 2) process the array of eevars and see whether there is one that is free (it means it is not in the local map)
+        else {
+            for (String glb_name : eevarAvailable) {
+                // case in which current one is not already used, I can use it
+                if (!this.eevarAssociation.containsValue(glb_name)) {
+                    this.eevarAssociation.put(var.getName(), glb_name);
+                    return;
+                }
+            }
+            // case in which all eevar already used
+            String global_reference = EevarManager.addEevar(var.getSort());
+            this.eevarAssociation.put(var.getName(), global_reference);
+        }
     }
 
 

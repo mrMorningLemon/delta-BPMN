@@ -1,0 +1,640 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<semantic:definitions xmlns:semantic="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:trisobpmn="http://www.trisotech.com/2014/triso/bpmn" xmlns:triso="http://www.trisotech.com/2015/triso/modeling" xmlns:trisofeed="http://trisotech.com/feed" xmlns:bpsim="http://www.bpsim.org/schemas/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:rss="http://purl.org/rss/2.0/" xmlns="http://www.trisotech.com/definitions/_1363713259771" id="_1363713259771" name="Mortgage Approval" targetNamespace="http://www.trisotech.com/definitions/_1363713259771" exporter="Camunda Modeler" exporterVersion="3.5.0" trisobpmn:logoChoice="Default">
+  <semantic:process id="MortgageApproval" name="Mortgage Approval (data-aware)" isExecutable="false" triso:defaultName="true">
+    <semantic:extensionElements>
+      <camunda:properties>
+        <camunda:property name="verify" value="#status = OfferMade" />
+      </camunda:properties>
+    </semantic:extensionElements>
+    <semantic:laneSet />
+    <semantic:task id="SendOutAppForm" name="Send Out Application Form">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="SELECT Cid FROM Customer" />
+          <camunda:property name="eff" value="#cid = Cid" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>SequenceFlow_0n78rer</semantic:incoming>
+      <semantic:outgoing>Flow_1sl6j6p</semantic:outgoing>
+    </semantic:task>
+    <semantic:dataStoreReference id="CatalogID" name="Catalog">
+      <semantic:documentation>Customer(Cid : CustomerID, Name : String);
+BankAccount(BAid : BankAccountID, CBA :  CustomerID, Deposit : Num, StatusBank : String);
+MortgageType(Mid : MortgageTypeID, Name : String, Amount : Num, Duration : Num, Interest : Num);</semantic:documentation>
+    </semantic:dataStoreReference>
+    <semantic:dataStoreReference id="RepositoryID" name="Repository">
+      <semantic:documentation>Info(Bank : BankAccountID, StatusBank : String, Liability : String);
+Archive(C  : CustomerID);</semantic:documentation>
+    </semantic:dataStoreReference>
+    <semantic:dataObjectReference id="ProcessVariablesID" name="Process variables" dataObjectRef="DataObject_0p4zx9u">
+      <semantic:documentation>#cid : CustomerID;
+#tid : MortgageTypeID;
+#duration : Num;
+#amount : Num;
+#status : String; 
+#bid : BankAccountID;
+#bankAmount : Num;
+#maxAmount : Num;
+#maxLength : Num;
+#liability : String;</semantic:documentation>
+    </semantic:dataObjectReference>
+    <semantic:dataObject id="DataObject_0p4zx9u" />
+    <semantic:task id="ArchiveDetails" name="Archive Details">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="#status = NotInterested" />
+          <camunda:property name="eff" value="#status = Archived" />
+          <camunda:property name="eff" value="INSERT #cid INTO Archive" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>SequenceFlow_0sdfjqm</semantic:incoming>
+      <semantic:outgoing>SequenceFlow_0bfnaab</semantic:outgoing>
+    </semantic:task>
+    <semantic:task id="CompleteApplication" name="Complete Application">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="SELECT Mid FROM MortgageType  WHERE #status = FillApplication AND e &#62; 0 AND g &#62; 0" />
+          <camunda:property name="var" value="e : Num" />
+          <camunda:property name="var" value="g : Num" />
+          <camunda:property name="eff" value="#status = CompletedApplication" />
+          <camunda:property name="eff" value="#tid = Mid" />
+          <camunda:property name="eff" value="#duration = e" />
+          <camunda:property name="eff" value="#amount = g" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_15s4elc</semantic:incoming>
+      <semantic:outgoing>SequenceFlow_07aoaog</semantic:outgoing>
+    </semantic:task>
+    <semantic:task id="MakeOffer" name="Make Offer">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="#status = InfoExtracted" />
+          <camunda:property name="eff" value="#status = OfferMade" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_0wghi80</semantic:incoming>
+      <semantic:outgoing>Flow_1koxvqd</semantic:outgoing>
+    </semantic:task>
+    <semantic:task id="SendRejection" name="Send Rejection">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="#status = InfoExtracted" />
+          <camunda:property name="eff" value="#status = RejectSent" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_1pniq9l</semantic:incoming>
+      <semantic:outgoing>Flow_0nmt5yj</semantic:outgoing>
+    </semantic:task>
+    <semantic:exclusiveGateway id="JoinXOR2">
+      <semantic:incoming>Flow_1koxvqd</semantic:incoming>
+      <semantic:incoming>Flow_0nmt5yj</semantic:incoming>
+      <semantic:outgoing>Flow_1akfqt0</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="Flow_1akfqt0" sourceRef="JoinXOR2" targetRef="ProcessEND" />
+    <semantic:sequenceFlow id="Flow_1koxvqd" sourceRef="MakeOffer" targetRef="JoinXOR2" />
+    <semantic:sequenceFlow id="Flow_0nmt5yj" sourceRef="SendRejection" targetRef="JoinXOR2" />
+    <semantic:task id="ProvideAccInfo" name="Provide Bank Account Info">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="SELECT BAid, CBA, StatusBank FROM BankAccount WHERE #cid = CBA AND #status = CompletedApplication" />
+          <camunda:property name="var" value="f: String" />
+          <camunda:property name="eff" value="#status = f" />
+          <camunda:property name="eff" value="INSERT BAid, StatusBank, NULL INTO Info" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_15gf5s6</semantic:incoming>
+      <semantic:outgoing>Flow_0hnonrs</semantic:outgoing>
+    </semantic:task>
+    <semantic:task id="SelectEligibleAcc" name="Select Eligible Account">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="SELECT Bank, StatusBank, Liability FROM Info WHERE #status = AssessmentMade" />
+          <camunda:property name="eff" value="DELETE Bank, StatusBank, Liability FROM Info" />
+          <camunda:property name="eff" value="#bid = Bank" />
+          <camunda:property name="eff" value="#liability = Liability" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_1vu6qsu</semantic:incoming>
+      <semantic:outgoing>Flow_1ss7yg9</semantic:outgoing>
+    </semantic:task>
+    <semantic:sequenceFlow id="Flow_0hnonrs" sourceRef="ProvideAccInfo" targetRef="LoopXOR2" />
+    <semantic:exclusiveGateway id="LoopXOR1">
+      <semantic:incoming>Flow_0h3vkmh</semantic:incoming>
+      <semantic:incoming>SequenceFlow_1vm4zm9</semantic:incoming>
+      <semantic:outgoing>Flow_15gf5s6</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="Flow_15gf5s6" sourceRef="LoopXOR1" targetRef="ProvideAccInfo" />
+    <semantic:exclusiveGateway id="LoopXOR2">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="cond" value="#status = InfoProvided" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_0hnonrs</semantic:incoming>
+      <semantic:outgoing>Flow_0h3vkmh</semantic:outgoing>
+      <semantic:outgoing>Flow_1alqq32</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="Flow_0h3vkmh" sourceRef="LoopXOR2" targetRef="LoopXOR1" />
+    <semantic:sequenceFlow id="Flow_1alqq32" sourceRef="LoopXOR2" targetRef="MakeAssessment" />
+    <semantic:exclusiveGateway id="SplitXOR1">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="cond" value="TRUE" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_1sl6j6p</semantic:incoming>
+      <semantic:outgoing>Flow_1gqcy34</semantic:outgoing>
+      <semantic:outgoing>Flow_0f57alr</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="Flow_1gqcy34" sourceRef="SplitXOR1" targetRef="EventNotInterested" />
+    <semantic:exclusiveGateway id="SplitXOR2">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="cond" value="#bankAmount &#62; #amount AND #amount &#60; #maxAmount AND #duration &#60; #maxLength" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_0dlkpn6</semantic:incoming>
+      <semantic:outgoing>Flow_0wghi80</semantic:outgoing>
+      <semantic:outgoing>Flow_1pniq9l</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="Flow_1ss7yg9" sourceRef="SelectEligibleAcc" targetRef="ExtractInfo" />
+    <semantic:sequenceFlow id="Flow_1sl6j6p" sourceRef="SendOutAppForm" targetRef="SplitXOR1" />
+    <semantic:task id="MakeAssessment" name="Make Assessment">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="#status = InfoProvided" />
+          <camunda:property name="eff" value="UPDATE Info SET Info.StatusBank=@v3 , Info.Liability=@v4   WHERE CASE WHEN Info.StatusBank != fraud THEN @v4 = Yes ELSE @v4 = No" />
+          <camunda:property name="eff" value="#status = AssessmentMade" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_1alqq32</semantic:incoming>
+      <semantic:outgoing>Flow_1vu6qsu</semantic:outgoing>
+    </semantic:task>
+    <semantic:sequenceFlow id="Flow_1vu6qsu" sourceRef="MakeAssessment" targetRef="SelectEligibleAcc" />
+    <semantic:sequenceFlow id="Flow_0wghi80" sourceRef="SplitXOR2" targetRef="MakeOffer" />
+    <semantic:sequenceFlow id="Flow_1pniq9l" sourceRef="SplitXOR2" targetRef="SendRejection" />
+    <semantic:sequenceFlow id="Flow_0f57alr" sourceRef="SplitXOR1" targetRef="EventAppFilled" />
+    <semantic:intermediateCatchEvent id="EventAppFilled" name="Application Filled">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="eff" value="#status = FillApplication" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_0f57alr</semantic:incoming>
+      <semantic:outgoing>Flow_15s4elc</semantic:outgoing>
+      <semantic:messageEventDefinition id="MessageEventDefinition_1m0zr30" />
+    </semantic:intermediateCatchEvent>
+    <semantic:sequenceFlow id="Flow_15s4elc" sourceRef="EventAppFilled" targetRef="CompleteApplication" />
+    <semantic:intermediateCatchEvent id="EventNotInterested" name="Not Interested">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="eff" value="#status = NotInterested" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_1gqcy34</semantic:incoming>
+      <semantic:outgoing>SequenceFlow_0sdfjqm</semantic:outgoing>
+      <semantic:messageEventDefinition id="MessageEventDefinition_00ja6ah" />
+    </semantic:intermediateCatchEvent>
+    <semantic:sequenceFlow id="SequenceFlow_0n78rer" sourceRef="StartMsgEvent" targetRef="SendOutAppForm" />
+    <semantic:startEvent id="StartMsgEvent" name="Mortgage request received">
+      <semantic:outgoing>SequenceFlow_0n78rer</semantic:outgoing>
+      <semantic:messageEventDefinition id="MessageEventDefinition_1yyd175" />
+    </semantic:startEvent>
+    <semantic:sequenceFlow id="SequenceFlow_0sdfjqm" sourceRef="EventNotInterested" targetRef="ArchiveDetails" />
+    <semantic:endEvent id="ProcessEND">
+      <semantic:incoming>Flow_1akfqt0</semantic:incoming>
+    </semantic:endEvent>
+    <semantic:exclusiveGateway id="JoinXOR1">
+      <semantic:incoming>SequenceFlow_0bfnaab</semantic:incoming>
+      <semantic:incoming>SequenceFlow_07aoaog</semantic:incoming>
+      <semantic:outgoing>SequenceFlow_1o3dfyf</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="SequenceFlow_0bfnaab" sourceRef="ArchiveDetails" targetRef="JoinXOR1" />
+    <semantic:sequenceFlow id="SequenceFlow_07aoaog" sourceRef="CompleteApplication" targetRef="JoinXOR1" />
+    <semantic:exclusiveGateway id="XORPossibleCompletion">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="cond" value="#status = NotInterested" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>SequenceFlow_1o3dfyf</semantic:incoming>
+      <semantic:outgoing>SequenceFlow_13q13is</semantic:outgoing>
+      <semantic:outgoing>SequenceFlow_1vm4zm9</semantic:outgoing>
+    </semantic:exclusiveGateway>
+    <semantic:sequenceFlow id="SequenceFlow_1o3dfyf" sourceRef="JoinXOR1" targetRef="XORPossibleCompletion" />
+    <semantic:endEvent id="EndNotInterested" name="Client not interested">
+      <semantic:incoming>SequenceFlow_13q13is</semantic:incoming>
+    </semantic:endEvent>
+    <semantic:sequenceFlow id="SequenceFlow_13q13is" sourceRef="XORPossibleCompletion" targetRef="EndNotInterested" />
+    <semantic:sequenceFlow id="SequenceFlow_1vm4zm9" sourceRef="XORPossibleCompletion" targetRef="LoopXOR1" />
+    <semantic:task id="ExtractInfo" name="Extract Info for Mortgage">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property name="pre" value="SELECT Mid, Amount, Duration, BAid, Deposit, Cid  FROM MortgageType, BankAccount, Customer  WHERE #tid = Mid AND #bid = BAid AND #cid = Cid AND #liability = Yes AND #status = AssessmentMade" />
+          <camunda:property name="eff" value="#maxAmount = Amount" />
+          <camunda:property name="eff" value="#maxLength = Duration" />
+          <camunda:property name="eff" value="#bankAmount = Deposit" />
+          <camunda:property name="eff" value="#status = InfoExtracted" />
+        </camunda:properties>
+      </semantic:extensionElements>
+      <semantic:incoming>Flow_1ss7yg9</semantic:incoming>
+      <semantic:outgoing>Flow_0dlkpn6</semantic:outgoing>
+    </semantic:task>
+    <semantic:sequenceFlow id="Flow_0dlkpn6" sourceRef="ExtractInfo" targetRef="SplitXOR2" />
+  </semantic:process>
+  <bpmndi:BPMNDiagram id="_6" name="Mortgage Approval" documentation="">
+    <bpmndi:BPMNPlane id="_6_plane" bpmnElement="MortgageApproval" trisobpmn:diagramWidth="936" trisobpmn:diagramHeight="675.2962968958858">
+      <di:extension />
+      <bpmndi:BPMNEdge id="Flow_0dlkpn6_di" bpmnElement="Flow_0dlkpn6">
+        <di:waypoint x="1560" y="210" />
+        <di:waypoint x="1615" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1vm4zm9_di" bpmnElement="SequenceFlow_1vm4zm9">
+        <di:waypoint x="815" y="210" />
+        <di:waypoint x="855" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_13q13is_di" bpmnElement="SequenceFlow_13q13is">
+        <di:waypoint x="790" y="235" />
+        <di:waypoint x="790" y="330" />
+        <di:waypoint x="862" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_1o3dfyf_di" bpmnElement="SequenceFlow_1o3dfyf">
+        <di:waypoint x="725" y="210" />
+        <di:waypoint x="765" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_07aoaog_di" bpmnElement="SequenceFlow_07aoaog">
+        <di:waypoint x="650" y="310" />
+        <di:waypoint x="700" y="310" />
+        <di:waypoint x="700" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0bfnaab_di" bpmnElement="SequenceFlow_0bfnaab">
+        <di:waypoint x="650" y="120" />
+        <di:waypoint x="700" y="120" />
+        <di:waypoint x="700" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0sdfjqm_di" bpmnElement="SequenceFlow_0sdfjqm">
+        <di:waypoint x="495" y="120" />
+        <di:waypoint x="550" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="SequenceFlow_0n78rer_di" bpmnElement="SequenceFlow_0n78rer">
+        <di:waypoint x="218" y="220" />
+        <di:waypoint x="268" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15s4elc_di" bpmnElement="Flow_15s4elc">
+        <di:waypoint x="495" y="310" />
+        <di:waypoint x="550" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0f57alr_di" bpmnElement="Flow_0f57alr">
+        <di:waypoint x="430" y="245" />
+        <di:waypoint x="430" y="310" />
+        <di:waypoint x="465" y="310" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1pniq9l_di" bpmnElement="Flow_1pniq9l">
+        <di:waypoint x="1640" y="235" />
+        <di:waypoint x="1640" y="260" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0wghi80_di" bpmnElement="Flow_0wghi80">
+        <di:waypoint x="1640" y="185" />
+        <di:waypoint x="1640" y="160" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1vu6qsu_di" bpmnElement="Flow_1vu6qsu">
+        <di:waypoint x="1260" y="210" />
+        <di:waypoint x="1310" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1sl6j6p_di" bpmnElement="Flow_1sl6j6p">
+        <di:waypoint x="351" y="220" />
+        <di:waypoint x="405" y="220" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1ss7yg9_di" bpmnElement="Flow_1ss7yg9">
+        <di:waypoint x="1410" y="210" />
+        <di:waypoint x="1460" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1gqcy34_di" bpmnElement="Flow_1gqcy34">
+        <di:waypoint x="430" y="195" />
+        <di:waypoint x="430" y="120" />
+        <di:waypoint x="465" y="120" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1alqq32_di" bpmnElement="Flow_1alqq32">
+        <di:waypoint x="1125" y="210" />
+        <di:waypoint x="1160" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0h3vkmh_di" bpmnElement="Flow_0h3vkmh">
+        <di:waypoint x="1100" y="185" />
+        <di:waypoint x="1100" y="130" />
+        <di:waypoint x="880" y="130" />
+        <di:waypoint x="880" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_15gf5s6_di" bpmnElement="Flow_15gf5s6">
+        <di:waypoint x="905" y="210" />
+        <di:waypoint x="940" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0hnonrs_di" bpmnElement="Flow_0hnonrs">
+        <di:waypoint x="1040" y="210" />
+        <di:waypoint x="1075" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_0nmt5yj_di" bpmnElement="Flow_0nmt5yj">
+        <di:waypoint x="1690" y="310" />
+        <di:waypoint x="1760" y="310" />
+        <di:waypoint x="1760" y="235" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1koxvqd_di" bpmnElement="Flow_1koxvqd">
+        <di:waypoint x="1690" y="120" />
+        <di:waypoint x="1760" y="120" />
+        <di:waypoint x="1760" y="185" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_1akfqt0_di" bpmnElement="Flow_1akfqt0">
+        <di:waypoint x="1785" y="210" />
+        <di:waypoint x="1822" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="S1401821444475__f0257a8e-1aca-45ce-8d51-42e43d3c57f0" bpmnElement="SendOutAppForm" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="268" y="186" width="83" height="68" />
+        <bpmndi:BPMNLabel labelStyle="LS_6" color:color="#000000" trisobpmn:defaultBounds="true">
+          <dc:Bounds x="184.17283948800343" y="301.2962968958858" width="82.99999999999997" height="26" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStoreReference_0o1zlfp_di" bpmnElement="CatalogID">
+        <dc:Bounds x="425" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="431" y="462" width="38" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataStoreReference_0q4mctu_di" bpmnElement="RepositoryID">
+        <dc:Bounds x="545" y="405" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="544" y="462" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="DataObjectReference_0n8376g_di" bpmnElement="ProcessVariablesID">
+        <dc:Bounds x="662" y="405" width="36" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="636" y="462" width="87" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0yrrryj_di" bpmnElement="ArchiveDetails">
+        <dc:Bounds x="550" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_09n0ku0_di" bpmnElement="CompleteApplication">
+        <dc:Bounds x="550" y="270" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1jmofj3_di" bpmnElement="MakeOffer">
+        <dc:Bounds x="1590" y="80" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0d34sus_di" bpmnElement="SendRejection">
+        <dc:Bounds x="1590" y="260" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1cwtjdi_di" bpmnElement="JoinXOR2" isMarkerVisible="true">
+        <dc:Bounds x="1735" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_1gr7ko9_di" bpmnElement="ProvideAccInfo">
+        <dc:Bounds x="940" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0iyxw9b_di" bpmnElement="SelectEligibleAcc">
+        <dc:Bounds x="1310" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0r5bt8z_di" bpmnElement="LoopXOR1" isMarkerVisible="true">
+        <dc:Bounds x="855" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0afmyzm_di" bpmnElement="LoopXOR2" isMarkerVisible="true">
+        <dc:Bounds x="1075" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_0s6co5g_di" bpmnElement="SplitXOR1" isMarkerVisible="true">
+        <dc:Bounds x="405" y="195" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_1vzb0zz_di" bpmnElement="SplitXOR2" isMarkerVisible="true">
+        <dc:Bounds x="1615" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_13ygitv_di" bpmnElement="MakeAssessment">
+        <dc:Bounds x="1160" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_021ukd8_di" bpmnElement="EventAppFilled">
+        <dc:Bounds x="465" y="295" width="30" height="30" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="438" y="330" width="84" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Event_16wc0zn_di" bpmnElement="EventNotInterested">
+        <dc:Bounds x="465" y="105" width="30" height="30" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="446" y="140" width="70" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="StartEvent_01sv5o8_di" bpmnElement="StartMsgEvent">
+        <dc:Bounds x="182" y="202" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="157" y="245" width="87" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_0qb1nrx_di" bpmnElement="ProcessEND">
+        <dc:Bounds x="1822" y="192" width="36" height="36" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_123jd99_di" bpmnElement="JoinXOR1" isMarkerVisible="true">
+        <dc:Bounds x="675" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="ExclusiveGateway_0yjvcuj_di" bpmnElement="XORPossibleCompletion" isMarkerVisible="true">
+        <dc:Bounds x="765" y="185" width="50" height="50" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1lgr2ip_di" bpmnElement="EndNotInterested">
+        <dc:Bounds x="862" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="855" y="358" width="49" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0r6ikgn_di" bpmnElement="ExtractInfo">
+        <dc:Bounds x="1460" y="170" width="100" height="80" />
+      </bpmndi:BPMNShape>
+    </bpmndi:BPMNPlane>
+    <bpmndi:BPMNLabelStyle id="LS_6">
+      <dc:Font name="Arial" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" />
+    </bpmndi:BPMNLabelStyle>
+  </bpmndi:BPMNDiagram>
+  <bpmndi:BPMNDiagram id="_0" name="Make Assessment and Offer-Reject" documentation="">
+    <bpmndi:BPMNPlane>
+      <di:extension />
+      <bpmndi:BPMNShape id="S1401821444478__2b5c088d-c255-43b2-9a34-3eda8bceb9b5" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="50" y="463" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444479__36829654-0dea-47f6-98ae-0f37f21032bd" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="276" y="444" width="83" height="68" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" trisobpmn:defaultBounds="true">
+          <dc:Bounds x="276" y="465" width="83" height="26" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444480__7fdf03ad-4f82-4f97-8605-4f57955616d3" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="177" y="288" width="42" height="42" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000">
+          <dc:Bounds x="188.21539018860614" y="305.10899647266467" width="110" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444481__29199b74-d7a9-4acf-9daa-b9bc5694c7d3" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="326" y="235" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000">
+          <dc:Bounds x="290" y="217" width="102" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444482__6427e495-bb1f-4948-be73-f6d9e75b9bb3" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="287" y="353" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000">
+          <dc:Bounds x="246" y="337" width="110" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444483__79b3cfe9-3730-4281-a18b-482167fb63fa" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="468" y="216" width="83" height="68" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" trisobpmn:defaultBounds="true">
+          <dc:Bounds x="468" y="244" width="83" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444484__f939603d-a8ca-4d57-b714-733074e071ca" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="402" y="334" width="83" height="68" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" trisobpmn:defaultBounds="true">
+          <dc:Bounds x="402" y="362" width="83" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444485__ad7e8bb7-779c-4da1-a1cc-90954abc984c" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="570" y="334" width="83" height="68" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" trisobpmn:defaultBounds="true">
+          <dc:Bounds x="570" y="362" width="83" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444486__3daf55ff-44a4-4e87-86e7-2e126c972105" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="704" y="293" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444487__351cff32-fb6c-43c5-b26b-3d3a2a4acbbc" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="431" y="463" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444488__d8fca734-beca-4426-8ab2-2e283cd94227" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="210" y="572" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000">
+          <dc:Bounds x="170" y="556" width="110" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444489__75e543f1-3c6d-4409-b3f0-a5eff3377ce2" isMarkerVisible="true" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="320" y="567" width="42" height="42" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444490__e3ffa7eb-f4ab-47d2-a865-d9e4e004bb03" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="431" y="572" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000">
+          <dc:Bounds x="411" y="558" width="68" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="S1401821444491__7a450b74-764a-4e8b-954a-866df99f66b6" color:background-color="#ffffff" color:border-color="#000000">
+        <dc:Bounds x="551" y="572" width="30" height="30" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000">
+          <dc:Bounds x="510" y="557" width="110" height="12" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="E1401821444519__8321aa56-71a4-4199-867c-67c1d3cbe84f" color:border-color="#000000">
+        <di:waypoint x="654" y="369" />
+        <di:waypoint x="719" y="368" />
+        <di:waypoint x="719" y="323" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444520__b377e307-53c3-4006-9ac3-96399556cc97" color:border-color="#000000">
+        <di:waypoint x="80" y="478" />
+        <di:waypoint x="98" y="478" />
+        <di:waypoint x="277" y="479" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444521__3da02de1-d55a-43f2-adde-e883019cd28e" color:border-color="#000000">
+        <di:waypoint x="552" y="251" />
+        <di:waypoint x="719" y="250" />
+        <di:waypoint x="719" y="293" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444522__48edeeaa-5731-4291-9f1f-1cf266e0d88a" color:border-color="#000000">
+        <di:waypoint x="363" y="589" />
+        <di:waypoint x="431" y="588" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444523__987a84c8-aefa-4f9b-9f74-bab9b01a1f5a" color:border-color="#000000">
+        <di:waypoint x="461" y="587" />
+        <di:waypoint x="551" y="587" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444524__0f9e6942-48ea-4333-82ec-8bb8ec83424b" color:border-color="#000000">
+        <di:waypoint x="65" y="493" />
+        <di:waypoint x="65" y="588" />
+        <di:waypoint x="210" y="588" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444525__c4de6524-2dbb-40d2-ad5d-aef76d015566" color:border-color="#000000">
+        <di:waypoint x="486" y="369" />
+        <di:waypoint x="569" y="368" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444526__ec44d219-3ab8-4217-9b75-9c20448cf3ec" color:border-color="#000000">
+        <di:waypoint x="317" y="368" />
+        <di:waypoint x="401" y="368" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444527__905aeec2-a952-4f59-a8a6-14961bf4bbfa" color:border-color="#000000">
+        <di:waypoint x="199" y="289" />
+        <di:waypoint x="198" y="250" />
+        <di:waypoint x="326" y="250" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444528__22deff86-2373-4a3c-8f14-c52771e08b51" color:border-color="#000000">
+        <di:waypoint x="566" y="602" />
+        <di:waypoint x="566" y="644" />
+        <di:waypoint x="341" y="644" />
+        <di:waypoint x="342" y="610" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444529__163a88cc-dd02-487d-871a-185872f33b00" color:border-color="#000000">
+        <di:waypoint x="240" y="588" />
+        <di:waypoint x="321" y="589" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444530__a84bc173-53b9-448f-abdb-3030e7a25887" color:border-color="#000000">
+        <di:waypoint x="65" y="463" />
+        <di:waypoint x="65" y="308" />
+        <di:waypoint x="177" y="308" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444531__7cdf0d0e-ac7f-43b0-9e8b-2cc501326932" color:border-color="#000000">
+        <di:waypoint x="356" y="250" />
+        <di:waypoint x="467" y="250" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444532__2f97ddf2-79b5-4b18-90f5-a9f99653b511" color:border-color="#000000">
+        <di:waypoint x="199" y="331" />
+        <di:waypoint x="198" y="368" />
+        <di:waypoint x="287" y="368" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="E1401821444533__8e02e6ce-940b-45ed-baa7-7f88c1d24707" color:border-color="#000000">
+        <di:waypoint x="360" y="478" />
+        <di:waypoint x="431" y="478" />
+        <bpmndi:BPMNLabel labelStyle="LS_0" color:color="#000000" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+    <bpmndi:BPMNLabelStyle id="LS_0">
+      <dc:Font name="Arial" size="8" isBold="false" isItalic="false" isUnderline="false" isStrikeThrough="false" />
+    </bpmndi:BPMNLabelStyle>
+  </bpmndi:BPMNDiagram>
+  <semantic:relationship type="ActivityStream">
+    <semantic:extensionElements>
+      <rss:rss version="2.0">
+        <rss:channel />
+      </rss:rss>
+    </semantic:extensionElements>
+    <semantic:source>_1363713259771</semantic:source>
+    <semantic:target>_1363713259771</semantic:target>
+  </semantic:relationship>
+  <semantic:relationship type="trisoExtension">
+    <semantic:extensionElements>
+      <triso:ProjectCharter>
+        <triso:projectDescription>&lt;p&gt;Process used in Stephen A. White and Derek Miers book &amp;ldquo;BPMN Modeling and Reference Guide&amp;rdquo;. This process is presented in Figure 5-13, page 58 of their book. This process illustrates the usage of Signal Events to coordinate the decisions of a Customer Service Representative and a Manager working in a Mortgage Approval Business Process.&lt;/p&gt;
+&lt;p&gt;&amp;nbsp;&lt;/p&gt;</triso:projectDescription>
+        <triso:projectGoals />
+        <triso:projectChallenges />
+        <triso:projectStakeholders />
+      </triso:ProjectCharter>
+    </semantic:extensionElements>
+    <semantic:source>_1363713259771</semantic:source>
+    <semantic:target>_1363713259771</semantic:target>
+  </semantic:relationship>
+</semantic:definitions>

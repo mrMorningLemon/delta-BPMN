@@ -137,4 +137,14 @@ class DABForwardExceptionBlock implements ForwardExceptionBlock {
     public Block[] getSubBlocks() {
         return this.subBlocks;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABForwardExceptionBlock))
+            return false;
+        DABForwardExceptionBlock obj = (DABForwardExceptionBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
 }

@@ -10,6 +10,7 @@ import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.processschema.blocks.*;
+import it.unibz.deltabpmn.processschema.core.EmptyBlock;
 import it.unibz.deltabpmn.processschema.core.ProcessSchema;
 import it.unibz.deltabpmn.verification.mcmt.NameManager;
 import it.unibz.deltabpmn.verification.mcmt.translation.DABProcessTranslator;
@@ -38,12 +39,14 @@ public class CamundaModelReader {
     private Set<FlowNode> visitedNodes = new HashSet<FlowNode>();
     private Map<FlowNode, Integer> visitedEndGates = new HashMap<>();
     private Stack<XORSplitGate> visitedXORSplitGates = new Stack<>();
+    private Stack<DeferredANDSplitGate> visitedDeferredANDSplitGates = new Stack<>();
     private Stack<FlowNode> visitedOpenXORLoopGates = new Stack<>();//used for opening XORs in LOOP blocks
     private Stack<XORLoopGate> visitedLoopGates = new Stack<>();//remember all loop gates
     private Stack<Block> stackBlocks = new Stack<>();
     // private int taskBlockCounter = 1;//counter for task blocks
     private int seqBlockCounter = 1; //counter for sequence blocks
     private int xorBlockCounter = 1;//counter for XOR (exclusive choice) blocks
+    private int deferredANDBlockCounter = 1;//counter for AND (parallel) blocks
     private int loopBlockCounter = 1;//counter for LOOP blocks
     private ProcessBlock dabProcess;
     private List<ConjunctiveSelectQuery> propertiesToVerify = new ArrayList<>();
@@ -156,20 +159,21 @@ public class CamundaModelReader {
                 //****************************************
 
                 //****************************************
-                //process a CATCH Event
+                //process a CATCH Event (should be only message or timer)
                 //****************************************
                 if (currentNode instanceof CatchEvent && !currentNode.getIncoming().isEmpty() && !currentNode.getOutgoing().isEmpty()) {
                     // --> (E) -->
-                    newFrontier.stream().forEach(c -> bpmnNodeQueue.addLast(c));
+                    System.out.println("--------[Catch EVENT] : " + currentNode.getId());
+                    newFrontier.stream().forEach(c -> bpmnNodeQueue.addFirst(c));
                     visitedNodes.add(currentNode);
-                    it.unibz.deltabpmn.processschema.blocks.Event eventBlock = null;
+                    it.unibz.deltabpmn.processschema.blocks.Event eventBlock;
                     ExtensionElements extensionElements = currentNode.getExtensionElements();
                     if (extensionElements != null)
                         eventBlock = processSchema.newEvent(currentNode.getId(), UpdateExpressionParser.parse(currentNode.getId(), extensionElements, dataSchema));
                     else
                         eventBlock = processSchema.newEvent(currentNode.getId());
                     stackBlocks.push(eventBlock);
-                    //System.out.println("SIMPLE: Catch Event");//ToDo: in our case, Catch Events can be only of certain types --> NARROW THE SCOPE
+                    //ToDo: in our case, Catch Events can be only of certain types --> NARROW THE SCOPE
                 }
                 //****************************************
 
@@ -179,10 +183,11 @@ public class CamundaModelReader {
                 //****************************************
                 if (currentNode instanceof TaskImpl || currentNode instanceof ServiceTaskImpl) {
                     //--> [ T ] -->
+                    System.out.println("--------[TASK] : " + currentNode.getId());
                     newFrontier.stream().forEach(c -> bpmnNodeQueue.addFirst(c));
                     visitedNodes.add(currentNode);
                     //start parsing the task data update (if any is available)
-                    it.unibz.deltabpmn.processschema.blocks.Task taskBlock = null;
+                    it.unibz.deltabpmn.processschema.blocks.Task taskBlock;
                     ExtensionElements extensionElements = currentNode.getExtensionElements();
                     if (extensionElements != null) {
                         ComplexTransition transition = UpdateExpressionParser.parse(currentNode.getId(), extensionElements, dataSchema);
@@ -196,10 +201,64 @@ public class CamundaModelReader {
 
 
                 //****************************************
-                //process a Deferred Choice block
+                //process a Deferred Parallel block
+                //****************************************
+                //AND split
+                if (currentNode instanceof ParallelGateway && currentNode.getIncoming().size() == 1) {
+                    System.out.println("--------[Parallel SPLIT] : " + currentNode.getId());
+                    //the order has to be reversed as forEach reverses the order of added elements; when we  start forking, add the frontier to the front of the deque
+                    newFrontier
+                            .stream()
+                            .collect(
+                                    Collector.of(
+                                            ArrayDeque<FlowNode>::new,
+                                            (deq, t) -> deq.addFirst(t),
+                                            (d1, d2) -> {
+                                                d2.addAll(d1);
+                                                return d2;
+                                            }))
+                            .stream()
+                            .forEach(c -> bpmnNodeQueue.addFirst(c));
+                    DeferredANDSplitGate gate = new DeferredANDSplitGate(currentNode.getId());
+                    visitedDeferredANDSplitGates.push(gate);
+                    stackBlocks.push(gate);//remember where did we start forking
+                }
+
+                //AND join
+                if (currentNode instanceof ParallelGateway && currentNode.getIncoming().size() == 2) {
+                    System.out.println("--------[Parallel JOIN] : " + currentNode.getId());
+                    //if it has two inputs and the next element is in visited ==> can be backward exception or loop block!
+                    visitedEndGates.merge(currentNode, 1, (prev, one) -> prev + one);//does upsert into the map with AND-JOIN gates (if a gate hasn't been visited, it is added with counter 1; otherwise it's counter gets incremented by 1
+
+                    if (visitedEndGates.get(currentNode) == 2) {
+                        newFrontier.stream().forEach(c -> bpmnNodeQueue.addLast(c));//we start assembling the XOR block after we encounter the join for the second time; then we populate its frontier
+
+                        DeferredANDSplitGate startingANDGate = visitedDeferredANDSplitGates.pop();//get the last XOR gate from the stack of visited gates and collect all nodes in the stack until we reach it
+                        assembleSecondANDBranch(startingANDGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                        ParallelBlock newANDBlock = processSchema.newParallelBlock("ANDblock" + this.deferredANDBlockCounter);
+                        newANDBlock.addSecondBlock(stackBlocks.pop());//add second block
+                        newANDBlock.addFirstBlock(stackBlocks.pop());//add first block
+                        //remove (+)_F from the stack
+                        System.out.println("AND completed:" + newANDBlock);
+                        stackBlocks.push(newANDBlock);
+                        this.deferredANDBlockCounter++;
+                    } else {
+                        //we are on one of the branches of the AND block, walk back until (+)_F on the stack so as to create a unique block on the branch
+                        DeferredANDSplitGate startingANDGate = visitedDeferredANDSplitGates.peek();//get the last AND gate from the stack of visited gates and
+                        assembleFirstANDBranch(startingANDGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                    }
+                }
+                //****************************************
+
+                //****************************************
+                //process a Exclusive Choice block
                 //****************************************
                 //XOR split
-                if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 1 && currentNode.getSucceedingNodes().filterByType(EndEvent.class).list().isEmpty() && lookAheadLoop(newFrontier, this.visitedOpenXORLoopGates) == null) {
+                if (currentNode instanceof ExclusiveGateway
+                        && currentNode.getIncoming().size() == 1
+                        && currentNode.getSucceedingNodes().filterByType(EndEvent.class).list().isEmpty() //to check that it's not a possible completion block
+                        && lookAheadLoop(newFrontier, this.visitedOpenXORLoopGates) == null) {
+                    System.out.println("--------[XOR SPLIT] : " + currentNode.getId());
                     //the order has to be reversed as forEach reverses the order of added elements; when we  start forking, add the frontier to the front of the deque
                     newFrontier
                             .stream()
@@ -214,41 +273,62 @@ public class CamundaModelReader {
                             .stream()
                             .forEach(c -> bpmnNodeQueue.addFirst(c));
                     ExtensionElements extensionElements = currentNode.getExtensionElements();
-                    //ToDo: do we always force a condition in the gate for a XOR split? if there's none, we can put TRUE, but this is not very "sustainable"
+                    //ToDo: do we always force a condition in the gate for a XOR split?
                     if (extensionElements == null)
                         throw new Exception("The condition of the XOR split " + currentNode.getId() + " is empty!");
-                    XORSplitGate gate = new XORSplitGate(currentNode.getId(), GatewayConditionParser.parseXORCondition(extensionElements, this.dataSchema));
+                    XORSplitGate gate = new XORSplitGate(currentNode.getId(), GatewayConditionParser.parseGatewayCondition(extensionElements, this.dataSchema));
                     visitedXORSplitGates.push(gate);
                     stackBlocks.push(gate);//remember where did we start forking
                     //ToDo: add visited start gates for detecting loops; if we saw that gate twice, then it's a loop
                 }
 
-                //XOR join
-                if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 2 && Collections.disjoint(this.visitedNodes, currentNode.getPreviousNodes().list())) {
+                //XOR join (can be confused with the start of a LOOP block; need to check that we haven't started with XOR loop by checking the stack of open LOOP blocks
+                if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 2 && isExclusiveChoiceXORJoin(currentNode, this.bpmnNodeQueue, this.visitedNodes, this.visitedXORSplitGates, this.modelInstance)) {
+                    System.out.println("--------[XOR JOIN] : " + currentNode.getId());
                     //ToDO: when we have two incoming arrows, it can mean that we're dealing with a gateway of a backward (or forward) exception or a loop block!
                     //if it has two inputs and the next element is in visited ==> can be backward exception or loop block!
                     visitedEndGates.merge(currentNode, 1, (prev, one) -> prev + one);//does upsert into the map with XOR-JOIN gates (if a gate hasn't been visited, it is added with counter 1; otherwise it's counter gets incremented by 1
 
                     if (visitedEndGates.get(currentNode) == 2) {
                         newFrontier.stream().forEach(c -> bpmnNodeQueue.addLast(c));//we start assembling the XOR block after we encounter the join for the second time; then we populate its frontier
-                        ExclusiveChoiceBlock newXORBlock = processSchema.newExclusiveChoiceBlock("XORblock" + this.xorBlockCounter);
-                        newXORBlock.addSecondBlock(stackBlocks.pop());//add second block
-                        newXORBlock.addFirstBlock(stackBlocks.pop());//add first block
-                        //remove (X)_F and get its condition into the XOR block
-                        newXORBlock.addCondition(((XORSplitGate) stackBlocks.pop()).getCondition());
-                        System.out.println("XOR completed: " + newXORBlock);
-                        stackBlocks.push(newXORBlock);
+                        //ExclusiveChoiceBlock newXORBlock = processSchema.newExclusiveChoiceBlock("XORblock" + this.xorBlockCounter);
+                        // first we need to make sure that all the elements on the second XOR block branch have been assembled
+                        XORSplitGate startingXORGate = visitedXORSplitGates.pop();//get the last XOR gate from the stack of visited gates and collect all nodes in the stack until we reach it
+                        assembleSecondXORBranch(startingXORGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                        // start with extracting assembled blocks from the stack
+                        Block b2 = stackBlocks.pop();//get second block
+                        Block b1 = stackBlocks.pop();//get first block
+                        ConjunctiveSelectQuery condition = ((XORSplitGate) stackBlocks.pop()).getCondition();//remove (X)_F and get condition stored in it for the XOR block
+                        if (condition.isEmpty()) {
+                            //if the precondition is empty, then it's TRUE and we're dealing with a Deferred choice block
+                            DeferredChoiceBlock newXORBlock = processSchema.newDeferredChoiceBlock("XORblock" + this.xorBlockCounter);
+                            newXORBlock.addSecondBlock(b2);//add second block
+                            newXORBlock.addFirstBlock(b1);//add first block
+                            System.out.println("XOR completed: " + newXORBlock);
+                            stackBlocks.push(newXORBlock);
+                        } else {
+                            //if the precondition is not empty, then we're dealing with a Eclusive choice block
+                            ExclusiveChoiceBlock newXORBlock = processSchema.newExclusiveChoiceBlock("XORblock" + this.xorBlockCounter);
+                            newXORBlock.addSecondBlock(b2);//add second block
+                            newXORBlock.addFirstBlock(b1);//add first block
+                            newXORBlock.addCondition(condition);
+                            System.out.println("XOR completed: " + newXORBlock);
+                            stackBlocks.push(newXORBlock);
+                        }
                         this.xorBlockCounter++;
+                        continue;
                     } else {
                         //we are on one of the branches of the XOR block, walk back until (X)_F on the stack so as to create a unique block on the branch
-                        XORSplitGate startingXORGate = visitedXORSplitGates.pop();//get the last XOR gate from the stack of visited gates and
-                        while (stackBlocks.search(startingXORGate) > 2) {
-                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + this.seqBlockCounter);
-                            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
-                            newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
-                            stackBlocks.push(newSequenceBlock);
-                            this.seqBlockCounter++;
-                        }
+                        XORSplitGate startingXORGate = visitedXORSplitGates.peek();//get the last XOR gate from the stack of visited gates and collect all nodes in the stack until we reach it
+                        assembleFirstXORBranch(startingXORGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+//                        while (stackBlocks.search(startingXORGate) > 2) {
+//                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + this.seqBlockCounter);
+//                            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
+//                            newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
+//                            stackBlocks.push(newSequenceBlock);
+//                            this.seqBlockCounter++;
+//                        }
+                        continue;
                     }
                 }
                 //****************************************
@@ -258,6 +338,8 @@ public class CamundaModelReader {
                 //****************************************
                 //XOR split for LOOP
                 if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 2) {
+                    System.out.println("--------[LOOP START] : " + currentNode.getId());
+
                     //visiting the gate for the second time, close the block
                     if (this.visitedOpenXORLoopGates.contains(currentNode)) {
                         this.visitedOpenXORLoopGates.pop();//remove the gate that we've just visited for the second time
@@ -273,16 +355,27 @@ public class CamundaModelReader {
                         }
                         //now assemble the whole LOOP block
                         LoopBlock newLOOPBlock = processSchema.newLoopBlock("LOOPBlock" + loopBlockCounter, iterationGate.getCondition());
-                        newLOOPBlock.addSecondBlock(stackBlocks.pop());//add second block
-                        stackBlocks.pop();//remove (X)_LF2
-                        newLOOPBlock.addFirstBlock(stackBlocks.pop());//add first block
-                        stackBlocks.pop();//remove (X)_LF1
+                        Block b2 = stackBlocks.pop();
+                        if (!(b2 instanceof XORLoopGate)) {
+                            newLOOPBlock.addSecondBlock(b2);//add second block
+                            stackBlocks.pop();
+                        }//remove (X)_LF2
+                        else
+                            newLOOPBlock.addSecondBlock(new EmptyBlock(this.dataSchema));
+                        Block b1 = stackBlocks.pop();
+                        if (!(b1 instanceof XORLoopGate)) {
+                            newLOOPBlock.addFirstBlock(b1);//add first block
+                            stackBlocks.pop();
+                        }//remove (X)_LF1
+                        else
+                            newLOOPBlock.addFirstBlock(new EmptyBlock(this.dataSchema));
                         stackBlocks.push(newLOOPBlock);
                         this.loopBlockCounter++;
                         continue;
                     }
                     //visiting the gate for the first time (comes after the first check as it clashes with the XOR gate being added to the stack of visited XOR gates)
-                    if (!Collections.disjoint(this.visitedNodes, currentNode.getPreviousNodes().list())) {
+                    //if (!Collections.disjoint(this.visitedNodes, currentNode.getPreviousNodes().list())) {
+                    else {
                         //a XOR split of the loop should have only one successor (i.e., newFrontier.size()=1)!
                         this.bpmnNodeQueue.addFirst(newFrontier.get(0));
                         //add visited start gates for detecting loops: when we see that gate for a second time, then it's a loop block!
@@ -291,10 +384,13 @@ public class CamundaModelReader {
                         this.visitedLoopGates.push(gate);//needed to perform a loop for creating the first sub-block of the LOOP block
                         stackBlocks.push(gate);//remember where did we start forking
                     }
+                    continue;
                 }
 
                 //XOR "join" for LOOP
                 if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 1 && !this.visitedOpenXORLoopGates.empty()) {
+                    System.out.println("--------[LOOP CONTINUE] : " + currentNode.getId());
+
                     //System.out.println("TAKING A TURN IN A LOOP BLOCK");
                     //detect which branch brings to the looping gate and take this gate for elements to be put into the frontier
                     FlowNode loopBranchNode = lookAheadLoop(newFrontier, this.visitedOpenXORLoopGates);
@@ -313,9 +409,10 @@ public class CamundaModelReader {
                         ExtensionElements extensionElements = currentNode.getExtensionElements();
                         if (extensionElements == null)
                             throw new Exception("The condition of the XOR split " + currentNode.getId() + " is empty!");
-                        XORLoopGate gate = new XORLoopGate(currentNode.getId(), GatewayConditionParser.parseXORCondition(extensionElements, this.dataSchema));
+                        XORLoopGate gate = new XORLoopGate(currentNode.getId(), GatewayConditionParser.parseGatewayCondition(extensionElements, this.dataSchema));
                         visitedLoopGates.push(gate);
                         stackBlocks.push(gate);//pushing the second fork on the stack of blocks
+                        //newFrontier.stream().forEach(c -> bpmnNodeQueue.addFirst(c));
                     }
                 }
                 //****************************************
@@ -325,19 +422,22 @@ public class CamundaModelReader {
                 //process a POSSIBLE COMPLETION block
                 //****************************************
                 if (currentNode instanceof ExclusiveGateway && currentNode.getIncoming().size() == 1 && !currentNode.getSucceedingNodes().filterByType(EndEvent.class).list().isEmpty()) {
+                    System.out.println("--------[Possible COMPLETION XOR] : " + currentNode.getId());
+
                     EndEvent end = currentNode.getSucceedingNodes().filterByType(EndEvent.class).list().get(0);
                     //check if there are no potential situations in which we have a loop instead of the completion block
                     if (lookAheadLoop(newFrontier, this.visitedOpenXORLoopGates) == null) {
-                        ErrorBlock newPossibleCompletionBlock = null;
+                        PossibleCompletion newPossibleCompletionBlock = null;
                         ExtensionElements extensionElements = currentNode.getExtensionElements();
                         if (extensionElements == null)
                             //throw new Exception("The condition of the POSSIBLE COMPLETION block " + currentNode.getId() + " is empty!");
-                            newPossibleCompletionBlock = processSchema.newErrorBlock(currentNode.getId());
+                            newPossibleCompletionBlock = processSchema.newPossibleCompletion(currentNode.getId());
                         else
-                            newPossibleCompletionBlock = processSchema.newErrorBlock(currentNode.getId(), GatewayConditionParser.parseXORCondition(extensionElements, this.dataSchema));
+                            newPossibleCompletionBlock = processSchema.newPossibleCompletion(currentNode.getId(), GatewayConditionParser.parseGatewayCondition(extensionElements, this.dataSchema));
                         //newPossibleCompletionBlock.add(end.getId());
                         //extract the condition from the XOR gate
                         newFrontier.remove(end);
+                        newPossibleCompletionBlock.addMainProcessLifecycleVariable(this.dabProcess.getLifeCycleVariable());//add lifecyle variable of the main process
                         stackBlocks.push(newPossibleCompletionBlock);
                         this.bpmnNodeQueue.addFirst(newFrontier.get(0));
                     }
@@ -372,6 +472,10 @@ public class CamundaModelReader {
     }
 
     private static boolean containsVisitedXOR(Stack<FlowNode> visited, FlowNode start) {
+        //check for the case when the next node is already the closing loop node
+        if (visited.contains(start))
+            return true;
+
         Set<FlowNode> localVisited = new HashSet<FlowNode>();
         LinkedList<FlowNode> queue = new LinkedList<FlowNode>();
         localVisited.add(start);
@@ -394,5 +498,66 @@ public class CamundaModelReader {
     }
 
 
+    private static boolean isExclusiveChoiceXORJoin(FlowNode node, Deque<FlowNode> bpmnNodeQueue, Set<FlowNode> visitedNodes, Stack<XORSplitGate> visitedXORSplitGates, ModelInstance modelInstance) throws Exception {
+        List<FlowNode> previousNodes = node.getPreviousNodes().list();
+        if (previousNodes.size() > 2)
+            throw new Exception("Too many previous nodes for node " + node.getId());
+        if (visitedNodes.containsAll(previousNodes)) //we have visited all the previous nodes of the XOR join
+            return true;
+        if (!visitedXORSplitGates.empty()) { //we have visited only one previous node of the XOR join
+            XORSplitGate gate = visitedXORSplitGates.peek();//there must be somewhere an open XOR gate
+            FlowNode XOR = modelInstance.getModelElementById(gate.getId());//find it and check whether one of its successors is still in the queue
+            List<FlowNode> nextNodes = XOR.getSucceedingNodes().list();
+            if (visitedNodes.contains(previousNodes.get(0)) || visitedNodes.contains(previousNodes.get(1)))
+                if (bpmnNodeQueue.contains(nextNodes.get(0)) || bpmnNodeQueue.contains(nextNodes.get(1)))
+                    return true;
+        }
+        return false;
+    }
+
+    private static void assembleFirstXORBranch(XORSplitGate startingXORGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+        while (stackBlocks.search(startingXORGate) > 2) {
+            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
+            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
+            newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
+            stackBlocks.push(newSequenceBlock);
+            seqBlockCounter++;
+        }
+    }
+
+
+    private static void assembleSecondXORBranch(XORSplitGate startingXORGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+        Block pointerBlock = stackBlocks.get(stackBlocks.size() - stackBlocks.search(startingXORGate) + 1);//find a block going after the XOR split
+        while (stackBlocks.search(pointerBlock) > 2) {
+            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
+            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
+            newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
+            stackBlocks.push(newSequenceBlock);
+            seqBlockCounter++;
+        }
+    }
+
+
+    private static void assembleFirstANDBranch(DeferredANDSplitGate startingANDGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+        while (stackBlocks.search(startingANDGate) > 2) {
+            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
+            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
+            newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
+            stackBlocks.push(newSequenceBlock);
+            seqBlockCounter++;
+        }
+    }
+
+
+    private static void assembleSecondANDBranch(DeferredANDSplitGate startingANDGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+        Block pointerBlock = stackBlocks.get(stackBlocks.size() - stackBlocks.search(startingANDGate) + 1);//find a block going after the XOR split
+        while (stackBlocks.search(pointerBlock) > 2) {
+            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
+            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
+            newSequenceBlock.addFirstBlock(stackBlocks.pop());//add first block
+            stackBlocks.push(newSequenceBlock);
+            seqBlockCounter++;
+        }
+    }
 }
 

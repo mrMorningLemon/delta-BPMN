@@ -19,26 +19,32 @@ public class GatewayConditionParser {
     //get all condition expressions from flow elements
 
 
-    public static ConjunctiveSelectQuery parseXORCondition(ExtensionElements extensionElements, DataSchema dataSchema) {
+    //    public static ConjunctiveSelectQuery parseXORCondition(ExtensionElements extensionElements, DataSchema dataSchema) {
+    public static ConjunctiveSelectQuery parseGatewayCondition(ExtensionElements extensionElements, DataSchema dataSchema) throws Exception {
         Collection<CamundaProperty> properties = extensionElements.getElementsQuery()
                 .filterByType(CamundaProperties.class)
                 .singleResult()
                 .getCamundaProperties();
-        String name = null;
         String value = null;
         for (CamundaProperty property : properties) {
-            name = property.getCamundaName();
+            String name = property.getCamundaName();
             if (name.equals(condKey))
                 value = property.getCamundaValue();
         }
         return parseCondition(value, dataSchema);
     }
 
-    private static ConjunctiveSelectQuery parseCondition(String precondition, DataSchema dataSchema) {
-        ConjunctiveSelectQuery query = null;
+    private static ConjunctiveSelectQuery parseCondition(String precondition, DataSchema dataSchema) throws Exception {
+        ConjunctiveSelectQuery query;
         if (precondition.contains("SELECT"))
             //deal with a query that contains a SELECT part
             query = SelectParser.parse(precondition, dataSchema);
+        else if(precondition.equals("TRUE"))
+        {
+            //deal with a case in which
+            //ToDo: add more meaningful treatment of queries that consist only of TRUE
+            return new ConjunctiveSelectQuery();
+        }
         else {
             //deal with a query that doesn't have a SELECT part
             query = new ConjunctiveSelectQuery();

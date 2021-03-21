@@ -130,4 +130,14 @@ class DABInclusiveOrBlock implements InclusiveOrBlock {
     public Block[] getSubBlocks() {
         return this.subBlocks;
     }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABInclusiveOrBlock))
+            return false;
+        DABInclusiveOrBlock obj = (DABInclusiveOrBlock) o;
+        return name.equals(obj.getName()) && lifeCycle.equals(obj.getLifeCycleVariable());
+    }
 }
