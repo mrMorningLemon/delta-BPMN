@@ -50,7 +50,7 @@ Archive(C  : CustomerID);</semantic:documentation>
       <semantic:incoming>SequenceFlow_0sdfjqm</semantic:incoming>
       <semantic:outgoing>SequenceFlow_0bfnaab</semantic:outgoing>
     </semantic:task>
-    <semantic:task id="CompleteApplication" name="Complete Application">
+    <semantic:task id="CompleteApplication" name="Process Complete Application">
       <semantic:extensionElements>
         <camunda:properties>
           <camunda:property name="pre" value="SELECT Mid FROM MortgageType  WHERE #status = FillApplication AND e &#62; 0 AND g &#62; 0" />
@@ -163,7 +163,7 @@ Archive(C  : CustomerID);</semantic:documentation>
       <semantic:extensionElements>
         <camunda:properties>
           <camunda:property name="pre" value="#status = InfoProvided" />
-          <camunda:property name="eff" value="UPDATE Info SET Info.StatusBank=@v3 , Info.Liability=@v4   WHERE CASE WHEN Info.StatusBank != fraud THEN @v4 = Yes ELSE @v4 = No" />
+          <camunda:property name="eff" value="UPDATE Info SET Info.Liability=@v4   WHERE CASE WHEN Info.StatusBank != fraud THEN @v4 = Yes ELSE @v4 = No" />
           <camunda:property name="eff" value="#status = AssessmentMade" />
         </camunda:properties>
       </semantic:extensionElements>
