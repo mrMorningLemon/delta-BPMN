@@ -45,7 +45,7 @@ public class DeleteTransition implements ComplexTransition {
     public DeleteTransition(String name, DataSchema dataSchema) {
         this.precondition = new ConjunctiveSelectQuery();
         this.eevarAssociation = precondition.getRefManager();
-        this.guard = SystemConstants.TRUE.getName();
+        this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
         this.name = name;
         this.dataSchema = dataSchema;

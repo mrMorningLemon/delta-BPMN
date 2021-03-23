@@ -57,7 +57,7 @@ public class BulkUpdate implements ComplexTransition {
     public BulkUpdate(String name, RepositoryRelation toUpdate, DataSchema dataSchema) throws InvalidInputException {
         this.precondition = new ConjunctiveSelectQuery();
         this.eevarAssociation = precondition.getRefManager();
-        this.guard = SystemConstants.TRUE.getName();
+        this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.name = name;
         this.toUpdate = toUpdate;
         this.dataSchema = dataSchema;

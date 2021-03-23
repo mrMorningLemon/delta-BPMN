@@ -40,7 +40,7 @@ public class InsertTransition implements ComplexTransition {
         if (!precondition.getMCMTTranslation().equals(""))
             this.guard = precondition.getMCMTTranslation();
         else
-            this.guard = SystemConstants.TRUE.getName();
+            this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
         this.name = name;
         this.dataSchema = dataSchema;
@@ -57,7 +57,7 @@ public class InsertTransition implements ComplexTransition {
     public InsertTransition(String name, DataSchema dataSchema) throws EevarOverflowException {
         this.precondition = new ConjunctiveSelectQuery();
         this.eevarAssociation = precondition.getRefManager();
-        this.guard = SystemConstants.TRUE.getName();
+        this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
         this.name = name;
         this.dataSchema = dataSchema;

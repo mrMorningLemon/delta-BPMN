@@ -84,6 +84,8 @@ public final class DABProcessTranslator {
     private void generateDeclarationStatements() {
         //special treatment for integers
         this.dataSchema.removeSort(SystemSorts.INT);
+
+        pw.println(":max_transitions_number 500 \n");
         pw.println(":index int \n");
         pw.println(this.dataSchemaTranslator.Sorts().getAllElementDefinitions());
         pw.println(this.dataSchemaTranslator.CatalogRelations().getAllElementDeclarations());

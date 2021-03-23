@@ -22,7 +22,7 @@ public class EmptyTransition implements ComplexTransition {
 
     public EmptyTransition(String name, DataSchema dataSchema) {
         this.name = name;
-        this.guard = SystemConstants.TRUE.getName();
+        this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
         this.dataSchema = dataSchema;
 

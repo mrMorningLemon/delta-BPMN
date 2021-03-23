@@ -152,8 +152,8 @@ public class BulkCondition {
      * @param object The constant appearing in the condition.
      */
     public BulkCondition addNotEqualsCondition(Attribute attr, Constant object) throws InvalidInputException {
-        this.condition += " (not (= " + prepareAttribute(attr) + " " + object.getName() + ")";
-        this.falseList.add(" (= " + prepareAttribute(attr) + " " + object.getName() + "))");
+        this.condition += " (not (= " + prepareAttribute(attr) + " " + object.getName() + "))";
+        this.falseList.add(" (= " + prepareAttribute(attr) + " " + object.getName() + ")");
         return this;
     }
 
