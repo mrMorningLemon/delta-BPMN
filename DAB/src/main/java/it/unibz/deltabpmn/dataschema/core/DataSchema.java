@@ -21,6 +21,7 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
     private Map<String, RepositoryRelation> repository;
     private Map<String, CaseVariable> caseVariables;
     private Map<String, Attribute> attributes;
+    private List<String> eevars;
     private DbSpec spec;
     private DbSchema schema;
 
@@ -37,8 +38,9 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         this.repository = new HashMap<String, RepositoryRelation>();
         this.spec = new DbSpec();
         this.schema = spec.addDefaultSchema();
-        //4. initialize all the case variables
+        //4. initialize all the case variables and eevars
         this.caseVariables = new HashMap<String, CaseVariable>();
+        this.eevars = new ArrayList<String>();
         //a map for collecting data about the attributes of all the relations
         this.attributes = new HashMap<>();
         //create a special lifecylce variable for managing empty Blocks
@@ -249,5 +251,23 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
      */
     public DbTable addTableToDbSchema(String tableName) {
         return this.schema.addTable(tableName);
+    }
+
+    /**
+     * A method for remembering variables declared in {@code var} clauses (these variables are essentially eevars)
+     *
+     * @param name
+     */
+    public void addEevar(String name) {
+        this.eevars.add(name);
+    }
+
+    /**
+     * Removes eevars from case variable declarations
+     */
+    public void eevarsOut() {
+        for (String eevarName : this.eevars) {
+            this.caseVariables.remove(eevarName);
+        }
     }
 }

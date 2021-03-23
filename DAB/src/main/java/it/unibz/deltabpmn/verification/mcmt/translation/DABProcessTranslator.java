@@ -30,10 +30,10 @@ public final class DABProcessTranslator {
         try {
             this.pw = new PrintWriter(new File(name + "_MCMT-Translation.txt"));
         } catch (FileNotFoundException e) {
-            // TODO Auto-generated catch block
             e.printStackTrace();
         }
         this.dataSchemaTranslator = DataSchemaTranslator.getInstance(this.dataSchema);
+
     }
 
 //    public ProcessBlock getRoot() {

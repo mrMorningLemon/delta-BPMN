@@ -2,6 +2,7 @@ package it.unibz.deltabpmn.verification.mcmt.translation;
 
 
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
+import it.unibz.deltabpmn.dataschema.core.SystemConstants;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
 
 class CaseVariableTranslator implements MCMTCaseVariables {
@@ -45,7 +46,7 @@ class CaseVariableTranslator implements MCMTCaseVariables {
                 if (v.getSort().toString().equals("bool"))
                     result += "(= " + v.toString() + " false) ";
                 else
-                    result += "(= " + v.toString() + " NULL" + v.getSort().toString() + ") ";
+                    result += "(= " + v.toString() + " " + SystemConstants.NULL + "_" + v.getSort().toString() + ") ";
             }
         }
         return result;

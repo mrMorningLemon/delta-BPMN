@@ -29,7 +29,7 @@ public class UpdateExpressionParser {
     public static ComplexTransition parse(String taskName, ExtensionElements extensionElements, DataSchema dataSchema) throws Exception {
         String precondition = "";
         List<String> effects = new ArrayList<>();
-        List<String> newVariableDeclarations = new ArrayList<>();
+        List<String> newVariableDeclarations = new ArrayList<>();//list of variable declaration appearing in var clauses
         //1. extract all the elements of the update expression
         Collection<CamundaProperty> properties = extensionElements.getElementsQuery()
                 .filterByType(CamundaProperties.class)
@@ -259,8 +259,9 @@ public class UpdateExpressionParser {
         System.out.println("new variable name: " + declarationElements[0].trim());
         System.out.println("new variable sort: " + declarationElements[1].trim());
         System.out.println();
-        //we would actually need to create here a new case variable
+        //we would actually don't need to create here a new case variable
         dataSchema.newCaseVariable(declarationElements[0].trim(), dataSchema.newSort(declarationElements[1].trim()), true);
+        dataSchema.addEevar(declarationElements[0].trim());
         return dataSchema;
     }
 

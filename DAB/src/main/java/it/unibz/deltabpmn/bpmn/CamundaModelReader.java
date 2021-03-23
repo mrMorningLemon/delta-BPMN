@@ -93,6 +93,9 @@ public class CamundaModelReader {
     }
 
     public List<DABProcessTranslator> getProcessTranslators() {
+        //remove eevars from case variable declarations
+        this.dataSchema.eevarsOut();
+        
         List<DABProcessTranslator> processTranslators = new ArrayList<>();
         int cnt = 1;
         for (ConjunctiveSelectQuery property : this.propertiesToVerify) {
