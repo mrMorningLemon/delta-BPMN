@@ -21,8 +21,7 @@ public class DEMO {
 
     public static void main(String[] args) throws Exception {
 
-        //String path = "set your path here";
-        String path = System.getProperty("user.home") + "/Dropbox/DABs/DAB-Camunda/models/MortgageBPM21_upd.bpmn";
+        String path = //path to your Camunda BPMN file here;
 
         CamundaModelReader modelReader = new CamundaModelReader(path);
 
