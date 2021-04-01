@@ -65,11 +65,11 @@ class DABLoopBlock implements LoopBlock {
         firstUpate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED);
         firstUpate.setControlCaseVariableValue(this.lifeCycle, State.ACTIVE);
 
-        // second part: B1 completed and cond TRUE --> B1 IDLE and B2 ENABLED
+        // second part: B1 completed and cond FALSE --> B1 IDLE and B2 ENABLED
         ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery();
         secondGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
         InsertTransition secondUpdate = new InsertTransition(this.name + " second translation", secondGuard,this.dataSchema);
-        secondUpdate.addTaskGuard(cond.getMCMTTranslation());
+        secondUpdate.addTaskGuard(cond.getNegatedMCMT());
         secondUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.IDLE);
         secondUpdate.setControlCaseVariableValue(this.subBlocks[1].getLifeCycleVariable(), State.ENABLED);
 
@@ -82,17 +82,20 @@ class DABLoopBlock implements LoopBlock {
         thirdUpdate.setControlCaseVariableValue(this.subBlocks[1].getLifeCycleVariable(), State.IDLE);
 
 
-        // fourth part:  B1 completed and cond FALSE --> B1 IDLE and itself COMPLETED
+        // fourth part:  B1 completed and cond TRUE --> B1 IDLE and itself COMPLETED
         ConjunctiveSelectQuery fourthGuard = new ConjunctiveSelectQuery();
         fourthGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
         InsertTransition fourthUpdate = new InsertTransition(this.name + " fourth translation", fourthGuard,this.dataSchema);
-        fourthUpdate.addTaskGuard(cond.getNegatedMCMT());
+        fourthUpdate.addTaskGuard(cond.getMCMTTranslation());
         fourthUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.IDLE);
         fourthUpdate.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
 
 
         // generate MCMT translation
-        result += firstUpate.getMCMTTranslation() + "\n" + secondUpdate.getMCMTTranslation() + "\n" + thirdUpdate.getMCMTTranslation() + "\n" + fourthUpdate.getMCMTTranslation() + "\n";
+        result += firstUpate.getMCMTTranslation() + "\n" +
+                secondUpdate.getMCMTTranslation() + "\n" +
+                thirdUpdate.getMCMTTranslation() + "\n" +
+                fourthUpdate.getMCMTTranslation() + "\n";
 
         return result;
 

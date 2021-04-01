@@ -9,60 +9,40 @@ import it.unibz.deltabpmn.dataschema.elements.Sort;
  */
 public enum SystemConstants implements Constant {
 
-    TRUE {
-        @Override
-        public String getName() {
-            return "True";
-        }
-
+    TRUE("True") {
         @Override
         public Sort getSort() {
             return SystemSorts.BOOL;
         }
     },
 
-    FALSE {
-        @Override
-        public String getName() {
-            return "False";
-        }
-
+    FALSE("False") {
         @Override
         public Sort getSort() {
             return SystemSorts.BOOL;
         }
     },
 
-    NULL {
-
+    NULL("NULL") {
         @Override
-//        /**
-//         * This method is not supported for that system constant.
-//         * @return
-//         */
-        public String getName() {
-//            try {
-//                throw new UnsupportedOperationException();
-//            } catch (UnsupportedOperationException ex) {
-//                System.out.println("Method not supported");
-//            }
-            return "NULL";
-        }
-
-        @Override
-//        /**
-//         * This method is not supported for that system constant.
-//         * @return
-//         */
         public Sort getSort() {
-//            try {
-//                throw new UnsupportedOperationException();
-//            } catch (UnsupportedOperationException ex) {
-//                System.out.println("Method not supported");
-//            }
             return SystemSorts.STRING;
         }
     };
+
+    private final String name;
+
+
+    private SystemConstants(String name) {
+        this.name = name;
+    }
+
+
+    @Override
+
+    public String getName() {
+        return this.name;
+    }
 
 
     @Override

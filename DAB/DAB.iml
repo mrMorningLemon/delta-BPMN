@@ -23,5 +23,6 @@
     <orderEntry type="library" name="Maven: com.github.jsqlparser:jsqlparser:3.1" level="project" />
     <orderEntry type="library" name="Maven: org.camunda.bpm.model:camunda-bpmn-model:7.12.0" level="project" />
     <orderEntry type="library" name="Maven: org.camunda.bpm.model:camunda-xml-model:7.12.0" level="project" />
+    <orderEntry type="library" name="Maven: org.apache.commons:commons-lang3:3.12.0" level="project" />
   </component>
 </module>

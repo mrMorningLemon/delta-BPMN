@@ -4,7 +4,8 @@ import it.unibz.deltabpmn.datalogic.BinaryCondition;
 import it.unibz.deltabpmn.datalogic.BinaryConditionProvider;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.elements.Term;
-import javafx.util.Pair;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 
 public class BinaryExpressionParser {
 
@@ -58,7 +59,7 @@ public class BinaryExpressionParser {
         else if (t2 == null)
             //it's a constant that we don't know about ==> add it to dataSchema
             t2 = dataSchema.newConstant(second.trim(), t1.getSort());
-        return new Pair<>(t1, t2);
+        return new ImmutablePair<>(t1, t2);
     }
 
 }

@@ -27,8 +27,14 @@ public final class DABProcessTranslator {
         this.root = block;
         this.root.getLifeCycleVariable().setLifeCycle(2);
         this.dataSchema = dataSchema;
+        //create folder
+        String path = System.getProperty("user.dir") + "/bpmn-model-translations";
+        File theDir = new File(path);
+        if (!theDir.exists()) {
+            theDir.mkdirs();
+        }
         try {
-            this.pw = new PrintWriter(new File(name + "_MCMT-Translation.txt"));
+            this.pw = new PrintWriter(new File(path + "/" + name + "_MCMT-Translation.txt"));
         } catch (FileNotFoundException e) {
             e.printStackTrace();
         }

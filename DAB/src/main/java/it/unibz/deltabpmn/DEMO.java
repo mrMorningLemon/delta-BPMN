@@ -17,11 +17,16 @@ import it.unibz.deltabpmn.processschema.core.ProcessSchema;
 import it.unibz.deltabpmn.processschema.core.State;
 import it.unibz.deltabpmn.verification.mcmt.translation.DABProcessTranslator;
 
+import java.util.Scanner;
+
 public class DEMO {
 
     public static void main(String[] args) throws Exception {
 
-        String path = //path to your Camunda BPMN file here;
+        Scanner sc= new Scanner(System.in);
+        System.out.println("Insert your BPMN model path: ");
+        String path = sc.nextLine().trim();
+        System.out.println("Processing!");
 
         CamundaModelReader modelReader = new CamundaModelReader(path);
 

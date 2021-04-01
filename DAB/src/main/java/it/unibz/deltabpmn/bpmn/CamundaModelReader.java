@@ -95,14 +95,20 @@ public class CamundaModelReader {
     public List<DABProcessTranslator> getProcessTranslators() {
         //remove eevars from case variable declarations
         this.dataSchema.eevarsOut();
-        
+
         List<DABProcessTranslator> processTranslators = new ArrayList<>();
-        int cnt = 1;
-        for (ConjunctiveSelectQuery property : this.propertiesToVerify) {
-            DABProcessTranslator processTranslator = new DABProcessTranslator(processName + cnt, this.dabProcess, this.dataSchema);
-            processTranslator.setSafetyFormula(property);
+        if (this.propertiesToVerify.size() == 1) {
+            DABProcessTranslator processTranslator = new DABProcessTranslator(processName, this.dabProcess, this.dataSchema);
+            processTranslator.setSafetyFormula(propertiesToVerify.get(0));
             processTranslators.add(processTranslator);
-            cnt++;
+        } else {
+            int cnt = 1;
+            for (ConjunctiveSelectQuery property : this.propertiesToVerify) {
+                DABProcessTranslator processTranslator = new DABProcessTranslator(processName + cnt, this.dabProcess, this.dataSchema);
+                processTranslator.setSafetyFormula(property);
+                processTranslators.add(processTranslator);
+                cnt++;
+            }
         }
         return processTranslators;
     }
@@ -237,7 +243,7 @@ public class CamundaModelReader {
                         newFrontier.stream().forEach(c -> bpmnNodeQueue.addLast(c));//we start assembling the XOR block after we encounter the join for the second time; then we populate its frontier
 
                         DeferredANDSplitGate startingANDGate = visitedDeferredANDSplitGates.pop();//get the last XOR gate from the stack of visited gates and collect all nodes in the stack until we reach it
-                        assembleSecondANDBranch(startingANDGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                        this.seqBlockCounter = assembleSecondANDBranch(startingANDGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
                         ParallelBlock newANDBlock = processSchema.newParallelBlock("ANDblock" + this.deferredANDBlockCounter);
                         newANDBlock.addSecondBlock(stackBlocks.pop());//add second block
                         newANDBlock.addFirstBlock(stackBlocks.pop());//add first block
@@ -248,7 +254,7 @@ public class CamundaModelReader {
                     } else {
                         //we are on one of the branches of the AND block, walk back until (+)_F on the stack so as to create a unique block on the branch
                         DeferredANDSplitGate startingANDGate = visitedDeferredANDSplitGates.peek();//get the last AND gate from the stack of visited gates and
-                        assembleFirstANDBranch(startingANDGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                        this.seqBlockCounter = assembleFirstANDBranch(startingANDGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
                     }
                 }
                 //****************************************
@@ -297,7 +303,7 @@ public class CamundaModelReader {
                         //ExclusiveChoiceBlock newXORBlock = processSchema.newExclusiveChoiceBlock("XORblock" + this.xorBlockCounter);
                         // first we need to make sure that all the elements on the second XOR block branch have been assembled
                         XORSplitGate startingXORGate = visitedXORSplitGates.pop();//get the last XOR gate from the stack of visited gates and collect all nodes in the stack until we reach it
-                        assembleSecondXORBranch(startingXORGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                        this.seqBlockCounter = assembleSecondXORBranch(startingXORGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
                         // start with extracting assembled blocks from the stack
                         Block b2 = stackBlocks.pop();//get second block
                         Block b1 = stackBlocks.pop();//get first block
@@ -311,7 +317,7 @@ public class CamundaModelReader {
                             stackBlocks.push(newXORBlock);
                         } else {
                             //if the precondition is not empty, then we're dealing with a Eclusive choice block
-                            ExclusiveChoiceBlock newXORBlock = processSchema.newExclusiveChoiceBlock("XORblock" + this.xorBlockCounter);
+                            ExclusiveChoiceBlock newXORBlock = processSchema.newExclusiveChoiceBlock("XORChoiceblock" + this.xorBlockCounter);
                             newXORBlock.addSecondBlock(b2);//add second block
                             newXORBlock.addFirstBlock(b1);//add first block
                             newXORBlock.addCondition(condition);
@@ -323,7 +329,7 @@ public class CamundaModelReader {
                     } else {
                         //we are on one of the branches of the XOR block, walk back until (X)_F on the stack so as to create a unique block on the branch
                         XORSplitGate startingXORGate = visitedXORSplitGates.peek();//get the last XOR gate from the stack of visited gates and collect all nodes in the stack until we reach it
-                        assembleFirstXORBranch(startingXORGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
+                        this.seqBlockCounter = assembleFirstXORBranch(startingXORGate, this.seqBlockCounter, this.stackBlocks, this.processSchema);
 //                        while (stackBlocks.search(startingXORGate) > 2) {
 //                            SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + this.seqBlockCounter);
 //                            newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
@@ -395,7 +401,7 @@ public class CamundaModelReader {
                     System.out.println("--------[LOOP CONTINUE] : " + currentNode.getId());
 
                     //System.out.println("TAKING A TURN IN A LOOP BLOCK");
-                    //detect which branch brings to the looping gate and take this gate for elements to be put into the frontier
+                    //detect which branch brings to the looping gate and take this branch for elements to be put into the frontier
                     FlowNode loopBranchNode = lookAheadLoop(newFrontier, this.visitedOpenXORLoopGates);
                     if (loopBranchNode != null) {
                         newFrontier.remove(loopBranchNode);
@@ -417,6 +423,7 @@ public class CamundaModelReader {
                         stackBlocks.push(gate);//pushing the second fork on the stack of blocks
                         //newFrontier.stream().forEach(c -> bpmnNodeQueue.addFirst(c));
                     }
+                    continue;
                 }
                 //****************************************
 
@@ -518,7 +525,7 @@ public class CamundaModelReader {
         return false;
     }
 
-    private static void assembleFirstXORBranch(XORSplitGate startingXORGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+    private static int assembleFirstXORBranch(XORSplitGate startingXORGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
         while (stackBlocks.search(startingXORGate) > 2) {
             SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
             newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
@@ -526,10 +533,11 @@ public class CamundaModelReader {
             stackBlocks.push(newSequenceBlock);
             seqBlockCounter++;
         }
+        return seqBlockCounter;
     }
 
 
-    private static void assembleSecondXORBranch(XORSplitGate startingXORGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+    private static int assembleSecondXORBranch(XORSplitGate startingXORGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
         Block pointerBlock = stackBlocks.get(stackBlocks.size() - stackBlocks.search(startingXORGate) + 1);//find a block going after the XOR split
         while (stackBlocks.search(pointerBlock) > 2) {
             SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
@@ -538,10 +546,11 @@ public class CamundaModelReader {
             stackBlocks.push(newSequenceBlock);
             seqBlockCounter++;
         }
+        return seqBlockCounter;
     }
 
 
-    private static void assembleFirstANDBranch(DeferredANDSplitGate startingANDGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+    private static int assembleFirstANDBranch(DeferredANDSplitGate startingANDGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
         while (stackBlocks.search(startingANDGate) > 2) {
             SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
             newSequenceBlock.addSecondBlock(stackBlocks.pop());//add second block
@@ -549,10 +558,11 @@ public class CamundaModelReader {
             stackBlocks.push(newSequenceBlock);
             seqBlockCounter++;
         }
+        return seqBlockCounter;
     }
 
 
-    private static void assembleSecondANDBranch(DeferredANDSplitGate startingANDGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
+    private static int assembleSecondANDBranch(DeferredANDSplitGate startingANDGate, int seqBlockCounter, Stack<Block> stackBlocks, ProcessSchema processSchema) {
         Block pointerBlock = stackBlocks.get(stackBlocks.size() - stackBlocks.search(startingANDGate) + 1);//find a block going after the XOR split
         while (stackBlocks.search(pointerBlock) > 2) {
             SequenceBlock newSequenceBlock = processSchema.newSequenceBlock("SEQblock" + seqBlockCounter);
@@ -561,6 +571,7 @@ public class CamundaModelReader {
             stackBlocks.push(newSequenceBlock);
             seqBlockCounter++;
         }
+        return seqBlockCounter;
     }
 }
 

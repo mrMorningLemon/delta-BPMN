@@ -9,10 +9,10 @@ import it.unibz.deltabpmn.dataschema.elements.Constant;
 import it.unibz.deltabpmn.dataschema.elements.Term;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
-import javafx.util.Pair;
 import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperties;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperty;
+import org.apache.commons.lang3.tuple.*;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -141,7 +141,7 @@ public class UpdateExpressionParser {
         if (fromMatcher.find()) {
             relationName = fromMatcher.group(1).trim();
         } else throw new Exception("Empty FROM clause in the DELETE statement!");
-        return new Pair<>(toDelete, relationName);
+        return new ImmutablePair<>(toDelete, relationName);
     }
 
     //returns a pair consisting of values to be inserted and the name of the relation appearing in the INTO clause
@@ -162,7 +162,7 @@ public class UpdateExpressionParser {
         if (intoMatcher.find()) {
             relationName = intoMatcher.group(1).trim();
         } else throw new Exception("Empty FROM clause in the DELETE statement!");
-        return new Pair<>(toInsert, relationName);
+        return new ImmutablePair<>(toInsert, relationName);
     }
 
     //returns a pair consisting of values to be inserted and the name of the relation appearing in the INTO clause
