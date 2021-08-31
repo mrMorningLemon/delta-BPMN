@@ -140,7 +140,6 @@ class DABAttribute implements Attribute {
     public int hashCode() {
         int result = name.hashCode();
         result = 31 * result + sort.hashCode();
-        result = 31 * result + inRelation.getName().hashCode();
         return result;
     }
 }

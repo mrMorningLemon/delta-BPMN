@@ -4,8 +4,10 @@ import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemConstants;
 import it.unibz.deltabpmn.dataschema.elements.*;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
+import it.unibz.deltabpmn.exception.EmptyGuardException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
+import it.unibz.deltabpmn.processschema.core.NameProcessor;
 import it.unibz.deltabpmn.processschema.core.State;
 
 import java.util.Collection;
@@ -33,14 +35,14 @@ public class InsertTransition implements ComplexTransition {
      * @param precondition The precondition.
      * @param dataSchema   The data schema reference.
      */
-    public InsertTransition(String name, ConjunctiveSelectQuery precondition, DataSchema dataSchema) {
+    public InsertTransition(String name, ConjunctiveSelectQuery precondition, DataSchema dataSchema) throws EmptyGuardException {
         this.precondition = precondition;
         this.eevarAssociation = precondition.getRefManager();
         //ToDo: change the last if-else section with proper exception handling for empty preconditions
         if (!precondition.getMCMTTranslation().equals(""))
             this.guard = precondition.getMCMTTranslation();
         else
-            this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
+            throw new EmptyGuardException("The guard of transition " + name + " cannot be empty!");//this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
         this.name = name;
         this.dataSchema = dataSchema;
@@ -55,9 +57,9 @@ public class InsertTransition implements ComplexTransition {
      * @param dataSchema The data schema reference.
      */
     public InsertTransition(String name, DataSchema dataSchema) throws EevarOverflowException {
-        this.precondition = new ConjunctiveSelectQuery();
+        this.precondition = new ConjunctiveSelectQuery(dataSchema);
         this.eevarAssociation = precondition.getRefManager();
-        this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
+        this.guard = "";//"(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
         this.name = name;
         this.dataSchema = dataSchema;
@@ -93,7 +95,7 @@ public class InsertTransition implements ComplexTransition {
                     // control the sorts of eevars/constants in the SELECT statement to see if they match those of the relation they reference to
                     if (eevar)
                         checkEevarSorts(relation.getAttributeByIndex(i).getSort().getSortName(), values[i].getName());
-                    else if(caseVar)
+                    else if (caseVar)
                         checkCaseVarSorts(relation.getAttributeByIndex(i).getSort().getSortName(), values[i].getName());
                     else
                         checkConstantSorts(relation.getAttributeByIndex(i).getSort().getSortName(), values[i].getName());
@@ -273,7 +275,7 @@ public class InsertTransition implements ComplexTransition {
     //ToDo: check whether the description of the method is correct
 
     /**
-     * @return A string containing a part of MCMT code representing global updates.
+     * @return A string containing a part of MCMT code representing updates for elements with :global declarations
      */
     private String generateGlobalMCMT() {
         String result = "";
@@ -319,7 +321,7 @@ public class InsertTransition implements ComplexTransition {
      * @return A string containing an MCMT translation of the insert transition.
      */
     public String getMCMTTranslation() {
-        String finalMCMT = ":comment " + this.name + "\n:transition\n:var j\n";
+        String finalMCMT = ":comment " + NameProcessor.getTransitionName(this.name) + "\n:transition\n:var j\n";
         // control of the indexes
         if (this.precondition.isIndexPresent()) {
             finalMCMT += ":var x\n";

@@ -7,6 +7,7 @@ import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
+import it.unibz.deltabpmn.exception.EmptyGuardException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
@@ -64,21 +65,23 @@ class DABProcessBlock implements ProcessBlock {
     }
 
     @Override
-    public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+    public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException, EmptyGuardException {
         String result = "";
 
+        IndexGenerator indexGenerator = NameProcessor.getIndexGenerator();
+
         // first part: itself ENABLED --> B1 ENABLED and itself ACTIVE
-        ConjunctiveSelectQuery firstGuard = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery firstGuard = new ConjunctiveSelectQuery(this.dataSchema);
         firstGuard.addBinaryCondition(BinaryConditionProvider.equality(this.lifeCycle, State.ENABLED));
-        InsertTransition firstUpdate = new InsertTransition(this.name + " first translation", firstGuard, this.dataSchema);
+        InsertTransition firstUpdate = new InsertTransition(this.name + indexGenerator.getNext(), firstGuard, this.dataSchema);
         firstUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED);
         firstUpdate.setControlCaseVariableValue(this.lifeCycle, State.ACTIVE);
 
 
         // second part: B1 COMPLETED --> B1 IDLE and itself completed
-        ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery(this.dataSchema);
         secondGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
-        InsertTransition secondUpdate = new InsertTransition(this.name + " second translation", secondGuard, this.dataSchema);
+        InsertTransition secondUpdate = new InsertTransition(this.name + indexGenerator.getNext(), secondGuard, this.dataSchema);
         secondUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.IDLE);
         secondUpdate.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
 

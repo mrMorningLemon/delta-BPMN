@@ -1,9 +1,9 @@
 package it.unibz.deltabpmn.processschema.core;
 
 import it.unibz.deltabpmn.datalogic.ComplexTransition;
+import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
-import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
@@ -56,8 +56,11 @@ class DABEvent implements Event {
     public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException {
         String result = "";
         // control if this event has an effect
-        if (this.effect != null)
+        if (this.effect != null) {
+            this.effect.addTaskGuard("(= " + this.lifeCycle.getName() + " " + State.ENABLED.getName() + ")");
+            this.effect.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
             result += this.effect.getMCMTTranslation();//event block has no states, thus just add the update (if exists)
+        }
         return result;
     }
 

@@ -24,7 +24,7 @@ public class SelectParser {
                 .forEach(arg -> attributes.add(dataSchema.getAllAttributes().get(arg.trim())));
         ConjunctiveSelectQuery outputQuery = null;
         try {
-            outputQuery = new ConjunctiveSelectQuery(attributes.toArray(new Attribute[attributes.size()]));
+            outputQuery = new ConjunctiveSelectQuery(dataSchema,attributes.toArray(new Attribute[attributes.size()]));
         } catch (EevarOverflowException e) {
             e.printStackTrace();
         }

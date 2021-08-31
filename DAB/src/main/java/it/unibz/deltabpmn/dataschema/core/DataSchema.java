@@ -3,14 +3,14 @@ package it.unibz.deltabpmn.dataschema.core;
 import com.healthmarketscience.sqlbuilder.dbspec.basic.DbSchema;
 import com.healthmarketscience.sqlbuilder.dbspec.basic.DbSpec;
 import com.healthmarketscience.sqlbuilder.dbspec.basic.DbTable;
+import it.unibz.deltabpmn.datalogic.EevarManager;
 import it.unibz.deltabpmn.dataschema.elements.*;
 import it.unibz.deltabpmn.dataschema.elements.providers.*;
+import it.unibz.deltabpmn.exception.DuplicateDeclarationException;
+import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.processschema.core.State;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public final class DataSchema implements SortProvider, ConstantProvider, RepositoryRelationProvider, CatalogRelationProvider, CaseVariableProvider {
     private static DataSchema dataSchema = new DataSchema();
@@ -21,7 +21,7 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
     private Map<String, RepositoryRelation> repository;
     private Map<String, CaseVariable> caseVariables;
     private Map<String, Attribute> attributes;
-    private List<String> eevars;
+    private Map<String, String> eevars;
     private DbSpec spec;
     private DbSchema schema;
 
@@ -40,7 +40,7 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
         this.schema = spec.addDefaultSchema();
         //4. initialize all the case variables and eevars
         this.caseVariables = new HashMap<String, CaseVariable>();
-        this.eevars = new ArrayList<String>();
+        this.eevars = new HashMap<>();
         //a map for collecting data about the attributes of all the relations
         this.attributes = new HashMap<>();
         //create a special lifecylce variable for managing empty Blocks
@@ -117,12 +117,17 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
      * A method that adds constants that have to be specified in every MCMT program working with DABs.
      */
     private void intializeConstants() {
-        newConstant(State.IDLE.getName(), State.IDLE.getSort());
-        newConstant(State.ENABLED.getName(), State.ENABLED.getSort());
-        newConstant(State.ACTIVE.getName(), State.ACTIVE.getSort());
-        newConstant(State.COMPLETED.getName(), State.COMPLETED.getSort());
-        newConstant(State.ACTIVE_SINGLE.getName(), State.ACTIVE_SINGLE.getSort());
-        newConstant(State.ACTIVE_ALL.getName(), State.ACTIVE_ALL.getSort());
+        State[] systemStates = State.values();
+        for(int i=0;i<systemStates.length;i++)
+            newConstant(systemStates[i].getName(),systemStates[i].getSort());
+//        newConstant(State.IDLE.getName(), State.IDLE.getSort());
+//        newConstant(State.ENABLED.getName(), State.ENABLED.getSort());
+//        newConstant(State.ACTIVE.getName(), State.ACTIVE.getSort());
+//        newConstant(State.COMPLETED.getName(), State.COMPLETED.getSort());
+//        newConstant(State.ACTIVE_SINGLE.getName(), State.ACTIVE_SINGLE.getSort());
+//        newConstant(State.ACTIVE_ALL.getName(), State.ACTIVE_ALL.getSort());
+//        newConstant(State.ERROR.getName(), State.ERROR.getSort());
+
         newConstant(SystemConstants.TRUE.getName(), SystemConstants.TRUE.getSort());
         newConstant(SystemConstants.FALSE.getName(), SystemConstants.FALSE.getSort());
         //newConstant(SystemConstants.NULL.getName(), SystemConstants.NULL.getSort());
@@ -258,15 +263,58 @@ public final class DataSchema implements SortProvider, ConstantProvider, Reposit
      *
      * @param name
      */
-    public void addEevar(String name) {
-        this.eevars.add(name);
+    public void addEevar(String name, Sort sort) throws EevarOverflowException, DuplicateDeclarationException {
+
+        // 1 ) check if the declared variable has been already declared before
+        if (this.eevars.containsKey(name))
+            throw new DuplicateDeclarationException("Variable with name " + name + " has been already declared in hte process model!");
+
+        // 2 ) check if in the global manager there are eevar with that sort
+        Collection<String> eevarAvailable = EevarManager.getEevarWithSort(sort);
+
+        if (eevarAvailable.isEmpty()) {
+            // add eevar to the global eevar manager
+            String globalReference = EevarManager.addEevar(sort);
+            // add association locally
+            this.eevars.put(name, globalReference);
+        }
+        // 3 process the array and look if one is free (it means it is not in the local map)
+        else {
+            for (String globalEevar : eevarAvailable) {
+                // case in which current one is not already used, I can use it
+                if (!this.eevars.containsValue(globalEevar)) {
+                    this.eevars.put(name, globalEevar);
+                    return;
+                }
+            }
+            // case in which all eevar already used
+            String globalReference = EevarManager.addEevar(sort);
+            this.eevars.put(name, globalReference);
+        }
+    }
+
+    //ToDo: make List/Set outputs homogeneous for all class getters
+
+    /**
+     * @return The list of newly declared variables
+     */
+    public Set<String> getNewlyDeclaredVariables() {
+        return this.eevars.keySet();
+    }
+
+    /**
+     * @param varName
+     * @return The name of an eevar associate to the newly declared (case) variable with name {@code varName}
+     */
+    public String getEeevarByCaseVarName(String varName) {
+        return this.eevars.get(varName);
     }
 
     /**
      * Removes eevars from case variable declarations
      */
     public void eevarsOut() {
-        for (String eevarName : this.eevars) {
+        for (String eevarName : this.eevars.keySet()) {
             this.caseVariables.remove(eevarName);
         }
     }

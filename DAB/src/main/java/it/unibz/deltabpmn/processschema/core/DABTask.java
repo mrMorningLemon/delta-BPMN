@@ -1,6 +1,5 @@
 package it.unibz.deltabpmn.processschema.core;
 
-import it.unibz.deltabpmn.datalogic.BulkUpdate;
 import it.unibz.deltabpmn.datalogic.ComplexTransition;
 import it.unibz.deltabpmn.datalogic.EmptyTransition;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
@@ -28,7 +27,7 @@ class DABTask implements Task {
         this.dataSchema = dataSchema;
         this.lifeCycle = this.dataSchema.newCaseVariable("lifecycle" + this.name, SystemSorts.STRING, true);
         this.lifeCycle.setLifeCycle(1);
-        this.effect = new EmptyTransition(this.name+"TaskTransition",this.dataSchema);
+        this.effect = new EmptyTransition(this.name + "TaskTransition", this.dataSchema);
     }
 
     /**
@@ -72,11 +71,12 @@ class DABTask implements Task {
     @Override
     public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException {
         String result = "";
-        this.effect.addTaskGuard("(= " + this.lifeCycle.getName() + " Enabled)");
+        this.effect.addTaskGuard("(= " + this.lifeCycle.getName() + " " + State.ENABLED.getName() + ")");
         //handle lifecycle variable updates for bulk update transitions
-        if (this.effect instanceof BulkUpdate)
-            ((BulkUpdate) this.effect).defineLifecycleVariable(this.lifeCycle);
-        else this.effect.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
+//        if (this.effect instanceof BulkUpdate)
+//            ((BulkUpdate) this.effect).defineLifecycleVariable(this.lifeCycle);
+        //else
+        this.effect.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
         result += this.effect.getMCMTTranslation();
         return result;
     }

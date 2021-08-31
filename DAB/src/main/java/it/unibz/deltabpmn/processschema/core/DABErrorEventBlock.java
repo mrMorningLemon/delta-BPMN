@@ -8,6 +8,7 @@ import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
+import it.unibz.deltabpmn.exception.EmptyGuardException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
@@ -47,19 +48,20 @@ public class DABErrorEventBlock implements ErrorEventBlock {
 
 
     @Override
-    public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+    public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException, EmptyGuardException {
         String result = "";
+        IndexGenerator indexGenerator = NameProcessor.getIndexGenerator();
 
         // first part: event B1 enabled --> B1 COMPLETED and UPDATE
         ComplexTransition firstU = null;
         if (((Event) this.subBlocks[0]).hasEffect()) {
             firstU = ((Event) this.subBlocks[0]).getTransition();
-            firstU.addTaskGuard("(= " + this.subBlocks[0].getLifeCycleVariable().getName() + " Enabled)");
+            firstU.addTaskGuard("(= " + this.subBlocks[0].getLifeCycleVariable().getName() + " "+State.ENABLED.getName()+")");
             firstU.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED);
         } else {
-            ConjunctiveSelectQuery firstG = new ConjunctiveSelectQuery();
+            ConjunctiveSelectQuery firstG = new ConjunctiveSelectQuery(this.dataSchema);
             firstG.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED));
-            firstU = new InsertTransition(this.name + " first translation", firstG, this.dataSchema);
+            firstU = new InsertTransition(this.name + indexGenerator.getNext(), firstG, this.dataSchema);
             firstU.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED);
         }
 
@@ -69,9 +71,9 @@ public class DABErrorEventBlock implements ErrorEventBlock {
             secondU = ((Event) this.subBlocks[1]).getTransition();
             startPropagation(this.handler, secondU);
         } else {
-            ConjunctiveSelectQuery secondG = new ConjunctiveSelectQuery();
+            ConjunctiveSelectQuery secondG = new ConjunctiveSelectQuery(this.dataSchema);
             secondG.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[1].getLifeCycleVariable(), State.ENABLED));
-            secondU = new InsertTransition(this.name + " second translation", secondG, this.dataSchema);
+            secondU = new InsertTransition(this.name + indexGenerator.getNext(), secondG, this.dataSchema);
             startPropagation(this.handler, secondU);
         }
 
@@ -84,7 +86,7 @@ public class DABErrorEventBlock implements ErrorEventBlock {
     }
 
     private void startPropagation(Block handler, ComplexTransition transition) throws InvalidInputException, UnmatchingSortException {
-        transition.setControlCaseVariableValue(handler.getLifeCycleVariable(), this.dataSchema.newConstant("Error" + handler.getSubBlocks()[0].getName(), SystemSorts.STRING));
+        transition.setControlCaseVariableValue(handler.getLifeCycleVariable(), State.ERROR);
         for (Block block : handler.getSubBlocks())
             propagateError(block, transition);
     }

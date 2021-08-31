@@ -3,10 +3,11 @@ package it.unibz.deltabpmn.processschema.core;
 import it.unibz.deltabpmn.datalogic.BinaryConditionProvider;
 import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.datalogic.InsertTransition;
+import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
-import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
+import it.unibz.deltabpmn.exception.EmptyGuardException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
 import it.unibz.deltabpmn.processschema.blocks.Block;
@@ -55,37 +56,40 @@ class DABLoopBlock implements LoopBlock {
 
 
     @Override
-    public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+    public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException, EmptyGuardException {
         String result = "";
 
+        IndexGenerator indexGenerator = NameProcessor.getIndexGenerator();
+
+
         // first part: itself ENABLED --> B1 ENABLED and itself ACTIVE
-        ConjunctiveSelectQuery firstGaurd = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery firstGaurd = new ConjunctiveSelectQuery(this.dataSchema);
         firstGaurd.addBinaryCondition(BinaryConditionProvider.equality(this.lifeCycle, State.ENABLED));
-        InsertTransition firstUpate = new InsertTransition(this.name + " first translation", firstGaurd,this.dataSchema);
+        InsertTransition firstUpate = new InsertTransition(this.name + indexGenerator.getNext(), firstGaurd, this.dataSchema);
         firstUpate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED);
         firstUpate.setControlCaseVariableValue(this.lifeCycle, State.ACTIVE);
 
         // second part: B1 completed and cond FALSE --> B1 IDLE and B2 ENABLED
-        ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery secondGuard = new ConjunctiveSelectQuery(this.dataSchema);
         secondGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
-        InsertTransition secondUpdate = new InsertTransition(this.name + " second translation", secondGuard,this.dataSchema);
+        InsertTransition secondUpdate = new InsertTransition(this.name + indexGenerator.getNext(), secondGuard, this.dataSchema);
         secondUpdate.addTaskGuard(cond.getNegatedMCMT());
         secondUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.IDLE);
         secondUpdate.setControlCaseVariableValue(this.subBlocks[1].getLifeCycleVariable(), State.ENABLED);
 
 
         // third part: B2 completed --> B1 ENABLED and B2 IDLE
-        ConjunctiveSelectQuery thirdGuard = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery thirdGuard = new ConjunctiveSelectQuery(this.dataSchema);
         thirdGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[1].getLifeCycleVariable(), State.COMPLETED));
-        InsertTransition thirdUpdate = new InsertTransition(this.name + " third translation", thirdGuard,this.dataSchema);
+        InsertTransition thirdUpdate = new InsertTransition(this.name + indexGenerator.getNext(), thirdGuard, this.dataSchema);
         thirdUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.ENABLED);
         thirdUpdate.setControlCaseVariableValue(this.subBlocks[1].getLifeCycleVariable(), State.IDLE);
 
 
         // fourth part:  B1 completed and cond TRUE --> B1 IDLE and itself COMPLETED
-        ConjunctiveSelectQuery fourthGuard = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery fourthGuard = new ConjunctiveSelectQuery(this.dataSchema);
         fourthGuard.addBinaryCondition(BinaryConditionProvider.equality(this.subBlocks[0].getLifeCycleVariable(), State.COMPLETED));
-        InsertTransition fourthUpdate = new InsertTransition(this.name + " fourth translation", fourthGuard,this.dataSchema);
+        InsertTransition fourthUpdate = new InsertTransition(this.name + indexGenerator.getNext(), fourthGuard, this.dataSchema);
         fourthUpdate.addTaskGuard(cond.getMCMTTranslation());
         fourthUpdate.setControlCaseVariableValue(this.subBlocks[0].getLifeCycleVariable(), State.IDLE);
         fourthUpdate.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);

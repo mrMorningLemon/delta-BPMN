@@ -3,16 +3,16 @@ package it.unibz.deltabpmn.bpmn.parsers;
 import it.unibz.deltabpmn.bpmn.utils.SQL.SelectParser;
 import it.unibz.deltabpmn.datalogic.*;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
-import it.unibz.deltabpmn.dataschema.elements.Attribute;
-import it.unibz.deltabpmn.dataschema.elements.CaseVariable;
-import it.unibz.deltabpmn.dataschema.elements.Constant;
-import it.unibz.deltabpmn.dataschema.elements.Term;
+import it.unibz.deltabpmn.dataschema.elements.*;
+import it.unibz.deltabpmn.exception.DuplicateDeclarationException;
+import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
+import org.apache.commons.lang3.tuple.ImmutablePair;
+import org.apache.commons.lang3.tuple.Pair;
 import org.camunda.bpm.model.bpmn.instance.ExtensionElements;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperties;
 import org.camunda.bpm.model.bpmn.instance.camunda.CamundaProperty;
-import org.apache.commons.lang3.tuple.*;
 
 import java.util.*;
 import java.util.regex.Matcher;
@@ -247,21 +247,23 @@ public class UpdateExpressionParser {
             query = SelectParser.parse(precondition, dataSchema);
         else {
             //deal with a query that doesn't have a SELECT part
-            query = new ConjunctiveSelectQuery();
+            query = new ConjunctiveSelectQuery(dataSchema);
             for (String expr : precondition.split("AND"))
                 query.addBinaryCondition(BinaryExpressionParser.parse(expr, dataSchema));
         }
         return query;
     }
 
-    private static DataSchema parseVariableDeclarations(String declaration, DataSchema dataSchema) {
+    private static DataSchema parseVariableDeclarations(String declaration, DataSchema dataSchema) throws EevarOverflowException, DuplicateDeclarationException {
         String[] declarationElements = declaration.split(":");
         System.out.println("new variable name: " + declarationElements[0].trim());
         System.out.println("new variable sort: " + declarationElements[1].trim());
         System.out.println();
         //we would actually don't need to create here a new case variable
-        dataSchema.newCaseVariable(declarationElements[0].trim(), dataSchema.newSort(declarationElements[1].trim()), true);
-        dataSchema.addEevar(declarationElements[0].trim());
+        String varName = declarationElements[0].trim();
+        Sort varSort = dataSchema.newSort(declarationElements[1].trim());
+        dataSchema.newCaseVariable(varName, varSort, true);
+        dataSchema.addEevar(varName, varSort);
         return dataSchema;
     }
 

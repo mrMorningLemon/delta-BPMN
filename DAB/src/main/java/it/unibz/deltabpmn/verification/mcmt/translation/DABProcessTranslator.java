@@ -4,9 +4,7 @@ import it.unibz.deltabpmn.datalogic.ConjunctiveSelectQuery;
 import it.unibz.deltabpmn.datalogic.EevarManager;
 import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
-import it.unibz.deltabpmn.exception.EevarOverflowException;
-import it.unibz.deltabpmn.exception.InvalidInputException;
-import it.unibz.deltabpmn.exception.UnmatchingSortException;
+import it.unibz.deltabpmn.exception.*;
 import it.unibz.deltabpmn.processschema.blocks.Block;
 import it.unibz.deltabpmn.processschema.blocks.ProcessBlock;
 import it.unibz.deltabpmn.processschema.blocks.Task;
@@ -67,13 +65,12 @@ public final class DABProcessTranslator {
     }
 
     // method for generating the total mcmt translation of the process
-    private String processMCMTGeneration() throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+    private String processMCMTGeneration() throws InvalidInputException, UnmatchingSortException, EevarOverflowException, EmptyGuardException, UninitializedLifecyleVariableException {
         processMCMTGeneration(this.root);
         return this.total_mcmt;
     }
 
-    private void processMCMTGeneration(Block block) throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
-        // base case, the block is a task
+    private void processMCMTGeneration(Block block) throws InvalidInputException, UnmatchingSortException, EevarOverflowException, EmptyGuardException, UninitializedLifecyleVariableException {
         if (block instanceof Task) {
             this.total_mcmt += block.getMCMTTranslation();
             return;
@@ -110,7 +107,7 @@ public final class DABProcessTranslator {
         pw.println(this.dataSchemaTranslator.RepositoryRelations().getInitializationDeclaration() + " " + this.dataSchemaTranslator.CaseVariables().getInitializationDeclaration() + "\n");
     }
 
-    public void generateMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
+    public void generateMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException, EmptyGuardException, UninitializedLifecyleVariableException {
         generateDeclarationStatements();
         generateInitializationStatements();
         pw.println(":u_cnj " + this.safety_formula.getMCMTTranslation() + "\n");

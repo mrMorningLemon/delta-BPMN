@@ -3,12 +3,11 @@ package it.unibz.deltabpmn.datalogic;
 import com.healthmarketscience.sqlbuilder.BinaryCondition;
 import com.healthmarketscience.sqlbuilder.SelectQuery;
 import com.healthmarketscience.sqlbuilder.dbspec.basic.DbTable;
+import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemConstants;
-import it.unibz.deltabpmn.dataschema.elements.Attribute;
-import it.unibz.deltabpmn.dataschema.elements.CatalogRelation;
-import it.unibz.deltabpmn.dataschema.elements.Relation;
-import it.unibz.deltabpmn.dataschema.elements.RepositoryRelation;
+import it.unibz.deltabpmn.dataschema.elements.*;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
+import it.unibz.deltabpmn.exception.RepoRelationOverflowException;
 
 import java.util.*;
 
@@ -24,10 +23,13 @@ public class ConjunctiveSelectQuery {
     private String MCMTRepresentation = "";
     private String negatedMCMTRepresentation = "";
     private Map<String, String> refManager; // key is an internal name, value is a global eevar
-    private boolean indexPresent = false;
+    //private boolean indexPresent = false;
     private Attribute[] selectedAttributes; //attributes that follow the SELECT statement
     private List<Relation> fromRelations;
     private boolean isEmpty = false; //used for catching cases when it contains only TRUE
+    private int repoRelationCounter = 0; //counts how many repository relations are used in SELECT, the value cannot go beyond 2 (due to a limitation on index variables used in MCMT transitions)
+    private Map<RepositoryRelation, String> indexedRepoRelations; //a map that is allowed to contain at most two relations and that is used to correlate index variables with repository relations that use them
+    private DataSchema dataSchema;
 
     //ToDo: make one single constructor + add methods for adding attributes into the SELECT clause
 
@@ -36,13 +38,14 @@ public class ConjunctiveSelectQuery {
      *                   The attributes are analyzed to adjust the eevar management
      *                   (an eevar are added if an attribute is a primary key or an attribute of some catalog relation).
      */
-    public ConjunctiveSelectQuery(Attribute... attributes) throws EevarOverflowException {
+    public ConjunctiveSelectQuery(DataSchema dataSchema, Attribute... attributes) throws RepoRelationOverflowException, EevarOverflowException {
         this.selectedAttributes = attributes;
         this.fromRelations = new ArrayList<Relation>();
         this.tables = new HashMap<String, DbTable>();
         this.selectQuery = new SelectQuery();
         this.refManager = new HashMap<String, String>();
-
+        this.indexedRepoRelations = new HashMap<>();
+        this.dataSchema = dataSchema;
         for (Attribute att : attributes) {
             this.selectQuery.addColumns(att.getDbColumn());
 
@@ -65,21 +68,36 @@ public class ConjunctiveSelectQuery {
     /**
      * Constructs a conjunctive query that contains only case variables (equivalent to a sequence of binary expressions connected with AND)
      */
-    public ConjunctiveSelectQuery() {
+    public ConjunctiveSelectQuery(DataSchema dataSchema) {
         this.selectedAttributes = new Attribute[0];
         this.fromRelations = new ArrayList<Relation>();
         this.tables = new HashMap<String, DbTable>();
         this.selectQuery = new SelectQuery();
         this.refManager = new HashMap<String, String>();
         this.isEmpty = true;
+        this.indexedRepoRelations = new HashMap<>();
+        this.dataSchema = dataSchema;
     }
 
     /**
      * Check if the query is trivial, i.e., contains only {@code TRUE}.
+     *
      * @return
      */
     public boolean isEmpty() {
         return this.isEmpty;
+    }
+
+
+    /**
+     * @return An array of attributes appearing in the SELECT query. The array will be empty if it's a trivial query.
+     */
+    public Attribute[] getSelectedAttributes() {
+        return this.selectedAttributes;
+    }
+
+    public List<Relation> getFromRelations() {
+        return this.fromRelations;
     }
 
     /**
@@ -105,6 +123,9 @@ public class ConjunctiveSelectQuery {
                 leftMCMT = "" + this.refManager.get(leftAttr.getName());
             else
                 leftMCMT = "" + leftAttr.getMCMTDeclarationWithEEVAR(this.refManager.get(((CatalogRelation) leftAttr.getRelation()).getPrimaryKey().getName()));
+        } else if (this.dataSchema.getNewlyDeclaredVariables().contains(condition.getLeft().getName())) {
+            left = condition.getLeft();
+            leftMCMT = this.dataSchema.getEeevarByCaseVarName(((Term) left).getName());
         } else
             left = condition.getLeft();
 
@@ -115,8 +136,18 @@ public class ConjunctiveSelectQuery {
                 rightMCMT = "" + this.refManager.get(rightAttr.getName());
             else
                 rightMCMT = "" + rightAttr.getMCMTDeclarationWithEEVAR(this.refManager.get(((CatalogRelation) rightAttr.getRelation()).getPrimaryKey().getName()));
+        } else if (this.dataSchema.getNewlyDeclaredVariables().contains(condition.getRight().getName())) {
+            right = condition.getRight();
+            rightMCMT = this.dataSchema.getEeevarByCaseVarName(((Term) right).getName());
         } else
             right = condition.getRight();
+
+        //ToDo: optimize the NULL management step
+        //check if an element is NULL and add the according translation
+        if (left.equals("null"))
+            leftMCMT = SystemConstants.NULL.getName() + "_" + ((Term)right).getSort().getSortName();
+        if (right.equals("null"))
+            rightMCMT = SystemConstants.NULL.getName() + "_" + ((Term)left).getSort().getSortName();
 
         //String conditionToMCMT = "(= " + leftMCMT + " " + rightMCMT + ")";
         String conditionToMCMT = null;
@@ -154,7 +185,7 @@ public class ConjunctiveSelectQuery {
      *
      * @param relation The relation to be added to the FROM clause.
      */
-    private void addFrom(Relation relation) throws EevarOverflowException {
+    private void addFrom(Relation relation) throws RepoRelationOverflowException, EevarOverflowException {
         if (relation instanceof CatalogRelation) {
             addFrom((CatalogRelation) relation);
         } else {
@@ -175,7 +206,6 @@ public class ConjunctiveSelectQuery {
             this.tables.put(table.getAlias(), table);
             this.selectQuery.addFromTable(table);
 
-            // prova
             addReferenceVariable(relation.getPrimaryKey());
             this.MCMTRepresentation += "(not (= " + this.refManager.get(relation.getPrimaryKey().getName()) + " "
                     + SystemConstants.NULL.getName() + "_"
@@ -189,21 +219,47 @@ public class ConjunctiveSelectQuery {
      *
      * @param relation The repository relation to be added to the FROM clause.
      */
-    private void addFrom(RepositoryRelation relation) throws EevarOverflowException {
+    private void addFrom(RepositoryRelation relation) throws RepoRelationOverflowException, EevarOverflowException {
         DbTable table = relation.getDbTable();
         if (!tables.containsKey(table.getAlias())) {
             this.tables.put(table.getAlias(), table);
+            this.repoRelationCounter++;
+            if (this.repoRelationCounter > 2)
+                throw new RepoRelationOverflowException("This SELECT query uses more than 2 repository relations!");
             this.selectQuery.addFromTable(table);
-
+            String indexVar = this.repoRelationCounter == 1 ? "x" : "y";//based on the counter of used relations, use either x or y as the index variable
+            this.indexedRepoRelations.put(relation, indexVar);//remember which relation uses the index variable inedxVar
             for (int i = 0; i < relation.getAttributes().size(); i++) {
                 addReferenceVariable(relation.getAttributeByIndex(i));
-
-                this.MCMTRepresentation += "(= " + relation.getName() + (i + 1) + "[x] " + this.refManager.get(relation.getAttributeByIndex(i).getName()) + ") ";
-                setIndexPresent(true);
+                this.MCMTRepresentation += "(= " + relation.getName() + (i + 1) + "[" + indexVar + "] " + this.refManager.get(relation.getAttributeByIndex(i).getName()) + ") ";
             }
         }
     }
+//
+//    public Map<RepositoryRelation, String> getIndexedRepositoryRelations() {
+//        return this.indexedRepoRelations;
+//    }
 
+    public String getIndexVarForRepositoryRelation(RepositoryRelation relation) throws RepoRelationOverflowException {
+        String indexVar = "";
+
+        if (this.indexedRepoRelations.containsKey(relation))
+            indexVar = this.indexedRepoRelations.get(relation);
+        else
+            throw new RepoRelationOverflowException("This SELECT query does not use repository relation " + relation.getName());
+        return indexVar;
+    }
+
+    public int getRepositoryRelationCount() {
+        return this.repoRelationCounter;
+    }
+
+    /**
+     * @return {@code True}, if there is an index present in the query; {@code False}, otherwise.
+     */
+    public boolean isIndexPresent() {
+        return this.repoRelationCounter > 0;
+    }
 //    /**
 //     * @return A string representing the validated version of the conjunctive query as a SQL SELECT query.
 //     */
@@ -235,24 +291,6 @@ public class ConjunctiveSelectQuery {
         return this.MCMTRepresentation;
     }
 
-    //ToDo: the index is never manipulated in the main methods of the class
-
-    /**
-     * @return {@code True}, if there is an index present in the query; {@code False}, otherwise.
-     */
-    public boolean isIndexPresent() {
-        return this.indexPresent;
-    }
-
-    /**
-     * A method that sets an internal variable indicating whether there is an index in the query.
-     *
-     * @param indexPresent A boolean value that is {@code True}, if there is an index present in the query; {@code False}, otherwise.
-     */
-    private void setIndexPresent(boolean indexPresent) {
-        this.indexPresent = indexPresent;
-    }
-
 
     //ToDo: specify what are the eevar associations
 
@@ -263,7 +301,7 @@ public class ConjunctiveSelectQuery {
         return refManager;
     }
 
-    //ToDo: what does this method do?
+    //ToDo: provide proper description of this method
 
     /**
      * @return

@@ -6,9 +6,12 @@ import it.unibz.deltabpmn.dataschema.core.SystemConstants;
 import it.unibz.deltabpmn.dataschema.elements.*;
 import it.unibz.deltabpmn.exception.EevarOverflowException;
 import it.unibz.deltabpmn.exception.InvalidInputException;
+import it.unibz.deltabpmn.exception.RepoRelationOverflowException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
+import it.unibz.deltabpmn.processschema.core.NameProcessor;
 import it.unibz.deltabpmn.processschema.core.State;
 
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
@@ -43,7 +46,7 @@ public class DeleteTransition implements ComplexTransition {
      * @param dataSchema The data schema reference.
      */
     public DeleteTransition(String name, DataSchema dataSchema) {
-        this.precondition = new ConjunctiveSelectQuery();
+        this.precondition = new ConjunctiveSelectQuery(dataSchema);
         this.eevarAssociation = precondition.getRefManager();
         this.guard = "(= " + SystemConstants.TRUE.getName() + " " + SystemConstants.TRUE.getName() + ")";
         this.setTable = new HashMap<CaseVariable, String>();
@@ -63,7 +66,7 @@ public class DeleteTransition implements ComplexTransition {
      * @throws InvalidInputException
      * @throws UnmatchingSortException
      */
-    public void delete(RepositoryRelation relation, Term... values) throws InvalidInputException, UnmatchingSortException {
+    public void delete(RepositoryRelation relation, Term... values) throws UnmatchingSortException, InvalidInputException, RepoRelationOverflowException {
         // first control that the attributes inserted matches the relation's arity
         if (relation.arity() != values.length) {
             throw new InvalidInputException("No matching between arity of the relation and the number of deleted values. The number of inserted values should be " + relation.arity());
@@ -89,12 +92,17 @@ public class DeleteTransition implements ComplexTransition {
                                     + ") ";
                         else
                             this.guard += "(= " + relation.getName() + (i + 1) + "[x] " + values[i].getName() + ") ";
-                    } else {
-                        if (eevar)
-                            this.guard += "(= " + relation.getName() + (i + 1) + "[y] " + this.eevarAssociation.get(values[i].getName())
-                                    + ") ";
-                        else
-                            guard += "(= " + relation.getName() + (i + 1) + "[y] " + values[i].getName() + ") ";
+                    } else //if there are repository relations in the FROM clause of the SELECT query, we need to make sure that we refer to correct index variables
+                    {
+                        if (eevar) {
+                            if (!Arrays.asList(this.precondition.getSelectedAttributes()).contains(values[i]))//this check alows to remove needless atomic expressions from the MCMT transition guard
+                                this.guard += "(= " + relation.getName() + (i + 1) + "[" + this.precondition.getIndexVarForRepositoryRelation(relation) + "] " + this.eevarAssociation.get(values[i].getName())
+                                        + ") ";
+//                            this.guard += "(= " + relation.getName() + (i + 1) + "[y] " + this.eevarAssociation.get(values[i].getName())
+//                                    + ") ";
+                        } else
+                            guard += "(= " + relation.getName() + (i + 1) + "[" + this.precondition.getIndexVarForRepositoryRelation(relation) + "] " + values[i].getName() + ") ";
+//                            guard += "(= " + relation.getName() + (i + 1) + "[y] " + values[i].getName() + ") ";
                     }
 
                     this.localUpdate += ":val " + SystemConstants.NULL.getName() + "_" + relation.getAttributeByIndex(i).getSort().getSortName() + "\n";
@@ -270,20 +278,6 @@ public class DeleteTransition implements ComplexTransition {
         return result;
     }
 
-    /**
-     * @return A string containing an MCMT translation of the insert transition that has an empty insert part (special case).
-     */
-    private String generateOneCaseMCMT() {
-        String result = ":numcases 1\n:case\n";
-        for (RepositoryRelation rep : this.dataSchema.getRepositoryRelations()) {
-            for (int i = 0; i < rep.arity(); i++) {
-                result += ":val " + rep.getName() + (i + 1) + "[j]\n";
-            }
-        }
-        result += "\n";
-        result += this.generateGlobalMCMT();
-        return result;
-    }
 
     //ToDo: which kind of one state are we talking about here?
 
@@ -302,11 +296,11 @@ public class DeleteTransition implements ComplexTransition {
      * @return A string containing an MCMT translation of the insert transition.
      */
     public String getMCMTTranslation() {
-        String final_mcmt = ":comment " + this.name + "\n:transition\n:var j\n";
+        String final_mcmt = ":comment " + NameProcessor.getTransitionName(this.name) + "\n:transition\n:var j\n";
         // control of the indexes
         if (this.precondition.isIndexPresent()) {
             final_mcmt += ":var x\n";
-            if (!this.isOneCase())
+            if (!this.isOneCase() && this.precondition.getRepositoryRelationCount() == 2) //add index variable y only if there are two repository relations in the SELECT query
                 final_mcmt += ":var y\n";
         } else if (!this.isOneCase())
             final_mcmt += ":var x\n";
@@ -318,7 +312,7 @@ public class DeleteTransition implements ComplexTransition {
             final_mcmt += this.generateOneCaseMCMT();
             // two cases
         else {
-            if (this.precondition.isIndexPresent())
+            if (this.precondition.isIndexPresent() && this.precondition.getRepositoryRelationCount() == 2)// use two cases with index variable y only if we have two repository relations
                 final_mcmt += ":numcases 2\n:case (= j y)\n";
             else
                 final_mcmt += ":numcases 2\n:case (= j x)\n";
@@ -329,6 +323,21 @@ public class DeleteTransition implements ComplexTransition {
             final_mcmt += this.generateGlobalMCMT();
         }
         return final_mcmt;
+    }
+
+    /**
+     * @return A string containing an MCMT translation of the insert transition that has an empty insert part (special case).
+     */
+    private String generateOneCaseMCMT() {
+        String result = ":numcases 1\n:case\n";
+        for (RepositoryRelation rep : this.dataSchema.getRepositoryRelations()) {
+            for (int i = 0; i < rep.arity(); i++) {
+                result += ":val " + rep.getName() + (i + 1) + "[j]\n";
+            }
+        }
+        result += "\n";
+        result += this.generateGlobalMCMT();
+        return result;
     }
 
 

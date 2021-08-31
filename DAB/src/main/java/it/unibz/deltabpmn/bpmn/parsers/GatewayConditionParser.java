@@ -43,11 +43,11 @@ public class GatewayConditionParser {
         {
             //deal with a case in which
             //ToDo: add more meaningful treatment of queries that consist only of TRUE
-            return new ConjunctiveSelectQuery();
+            return new ConjunctiveSelectQuery(dataSchema);
         }
         else {
             //deal with a query that doesn't have a SELECT part
-            query = new ConjunctiveSelectQuery();
+            query = new ConjunctiveSelectQuery(dataSchema);
             for (String expr : precondition.split("AND"))
                 query.addBinaryCondition(BinaryExpressionParser.parse(expr, dataSchema));
         }

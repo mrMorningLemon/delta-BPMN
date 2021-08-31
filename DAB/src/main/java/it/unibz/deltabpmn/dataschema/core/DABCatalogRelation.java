@@ -151,22 +151,11 @@ class DABCatalogRelation implements CatalogRelation {
         CatalogRelation catRelation = new DABCatalogRelation(this.name, this.dataSchema);
         //cat_relation.setDbTable(alias);
         for (Attribute att : this.attributes) {
-            catRelation.addAttribute(alias.getAlias() +  att.getName(), att.getSort());
+            catRelation.addAttribute(alias.getAlias() + att.getName(), att.getSort());
         }
         return catRelation;
     }
 
-
-    @Override
-    public String toString() {
-        String result = this.name +
-                "(" + this.attributes.
-                stream().
-                map(Attribute::toString).
-                collect(Collectors.joining(","))
-                + ")";
-        return result;
-    }
 
     /**
      * Generates an MCMT declaration.
@@ -198,5 +187,36 @@ class DABCatalogRelation implements CatalogRelation {
                 result += attr.getFunctionalView() + " ";
         }
         return result;
+    }
+
+
+    @Override
+    public String toString() {
+        String result = this.name +
+                "(" + this.attributes.
+                stream().
+                map(Attribute::toString).
+                collect(Collectors.joining(","))
+                + ")";
+        return result;
+    }
+
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        for (Attribute attr : this.attributes)
+            result = 31 * result + attr.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABCatalogRelation))
+            return false;
+        DABCatalogRelation obj = (DABCatalogRelation) o;
+        return name.equals(obj.name) && this.primaryKey.equals(obj.primaryKey);//we don't need to compare all the attributes, it's enough to check the name and the PK attribute
     }
 }

@@ -40,7 +40,7 @@ public class SafetyPropertyParser {
             query = SelectParser.parse(property, dataSchema);
         else {
             //deal with a query that doesn't have a SELECT part
-            query = new ConjunctiveSelectQuery();
+            query = new ConjunctiveSelectQuery(dataSchema);
             for (String expr : property.split("AND"))
                 query.addBinaryCondition(BinaryExpressionParser.parse(expr, dataSchema));
         }

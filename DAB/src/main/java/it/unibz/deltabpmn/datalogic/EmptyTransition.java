@@ -8,6 +8,7 @@ import it.unibz.deltabpmn.dataschema.elements.Constant;
 import it.unibz.deltabpmn.dataschema.elements.RepositoryRelation;
 import it.unibz.deltabpmn.exception.InvalidInputException;
 import it.unibz.deltabpmn.exception.UnmatchingSortException;
+import it.unibz.deltabpmn.processschema.core.NameProcessor;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class EmptyTransition implements ComplexTransition {
      * @return A string containing an MCMT translation of the insert transition.
      */
     public String getMCMTTranslation() {
-        String finalMCMT = ":comment " + this.name + "\n:transition\n:var j\n";
+        String finalMCMT = ":comment " + NameProcessor.getTransitionName(this.name)+ "\n:transition\n:var j\n";
         finalMCMT += ":guard " + this.guard + "\n";
         finalMCMT += this.generateOneCaseMCMT() + "\n";
         return finalMCMT;

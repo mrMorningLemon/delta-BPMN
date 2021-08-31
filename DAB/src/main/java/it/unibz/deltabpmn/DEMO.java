@@ -7,9 +7,7 @@ import it.unibz.deltabpmn.dataschema.core.DataSchema;
 import it.unibz.deltabpmn.dataschema.core.SystemConstants;
 import it.unibz.deltabpmn.dataschema.core.SystemSorts;
 import it.unibz.deltabpmn.dataschema.elements.*;
-import it.unibz.deltabpmn.exception.EevarOverflowException;
-import it.unibz.deltabpmn.exception.InvalidInputException;
-import it.unibz.deltabpmn.exception.UnmatchingSortException;
+import it.unibz.deltabpmn.exception.*;
 import it.unibz.deltabpmn.processschema.blocks.ProcessBlock;
 import it.unibz.deltabpmn.processschema.blocks.SequenceBlock;
 import it.unibz.deltabpmn.processschema.blocks.Task;
@@ -23,7 +21,7 @@ public class DEMO {
 
     public static void main(String[] args) throws Exception {
 
-        Scanner sc= new Scanner(System.in);
+        Scanner sc = new Scanner(System.in);
         System.out.println("Insert your BPMN model path: ");
         String path = sc.nextLine().trim();
         System.out.println("Processing!");
@@ -38,7 +36,7 @@ public class DEMO {
     /**
      * This is an example program demonstrating how to create DAB processes
      */
-    private static void exampleDAB(DataSchema dataSchema) throws UnmatchingSortException, InvalidInputException, EevarOverflowException {
+    private static void exampleDAB(DataSchema dataSchema) throws UnmatchingSortException, InvalidInputException, EevarOverflowException, RepoRelationOverflowException, EmptyGuardException, UninitializedLifecyleVariableException {
         // sorts
         Sort job_id = dataSchema.newSort("jobcatID");
         Sort user_id = dataSchema.newSort("userID");
@@ -64,7 +62,6 @@ public class DEMO {
         Attribute eligible = application.addAttribute("eligible", SystemSorts.BOOL);
 
 
-
         //case variables
         CaseVariable jcid = dataSchema.newCaseVariable("jcid", job_id, true);
         CaseVariable uid = dataSchema.newCaseVariable("uid", user_id, true);
@@ -74,13 +71,12 @@ public class DEMO {
 
 
         // some transitions
-        ConjunctiveSelectQuery ins_job_cat_guard = new ConjunctiveSelectQuery(jobCategory.getAttributeByIndex(0));
+        ConjunctiveSelectQuery ins_job_cat_guard = new ConjunctiveSelectQuery(dataSchema, jobCategory.getAttributeByIndex(0));
         InsertTransition ins_job_cat = new InsertTransition("InsertJobCategory", ins_job_cat_guard, dataSchema);
         ins_job_cat.setControlCaseVariableValue(jcid, dataSchema.newConstant("jcid", job_id));
 
 
-
-        ConjunctiveSelectQuery ins_user_guard = new ConjunctiveSelectQuery(user.getAttributeByIndex(0));
+        ConjunctiveSelectQuery ins_user_guard = new ConjunctiveSelectQuery(dataSchema, user.getAttributeByIndex(0));
         InsertTransition ins_user = new InsertTransition("InsertUser", ins_user_guard, dataSchema);
         ins_user.setControlCaseVariableValue(uid, dataSchema.newConstant("uid", user_id));
 
@@ -89,16 +85,15 @@ public class DEMO {
         check_qual.setControlCaseVariableValue(qualif, SystemConstants.TRUE);
 
 
-        BulkUpdate markE = new BulkUpdate("MarkE", new ConjunctiveSelectQuery(), application, dataSchema);
+        BulkUpdate markE = new BulkUpdate("MarkE", new ConjunctiveSelectQuery(dataSchema), application, dataSchema);
         markE.root.addGreaterThanCondition(application.getAttributeByIndex(2), 80)
                 .addLessThanCondition(application.getAttributeByIndex(2), 100);
         markE.root.addTrueChild().updateAttributeValue(application.getAttributeByIndex(3), "True");
         markE.root.addFalseChild().updateAttributeValue(application.getAttributeByIndex(3), "False");
 
 
-
         // some transitions
-        ConjunctiveSelectQuery sel_winner_guard = new ConjunctiveSelectQuery(application.getAttributeByIndex(0),
+        ConjunctiveSelectQuery sel_winner_guard = new ConjunctiveSelectQuery(dataSchema, application.getAttributeByIndex(0),
                 application.getAttributeByIndex(1), application.getAttributeByIndex(2), application.getAttributeByIndex(3));
         sel_winner_guard.addBinaryCondition(BinaryConditionProvider.equality(application.getAttributeByIndex(3), SystemConstants.TRUE));
         DeleteTransition sel_winner = new DeleteTransition("Sel_Winner", sel_winner_guard, dataSchema);
@@ -110,7 +105,7 @@ public class DEMO {
         sel_winner.setControlCaseVariableValue(qualif, SystemConstants.FALSE);
 
 
-        ConjunctiveSelectQuery prova = new ConjunctiveSelectQuery(jobCategory.getAttributeByIndex(0));
+        ConjunctiveSelectQuery prova = new ConjunctiveSelectQuery(dataSchema, jobCategory.getAttributeByIndex(0));
         prova.addBinaryCondition(BinaryConditionProvider.equality(jobCategory.getAttributeByIndex(0), dataSchema.newConstant("HR", job_id)));
 
 
@@ -131,7 +126,7 @@ public class DEMO {
 
         //this property can be assigned to a list of properties to check in the BPMN model! the properties get parsed and (they're just conjunctive queries! we have a parser for conjunctive queries!)
         //run MCMT on the generated files
-        ConjunctiveSelectQuery safety_property = new ConjunctiveSelectQuery();
+        ConjunctiveSelectQuery safety_property = new ConjunctiveSelectQuery(dataSchema);
         safety_property.addBinaryCondition(BinaryConditionProvider.equality(root.getLifeCycleVariable(), State.ENABLED));
         safety_property.addBinaryCondition(BinaryConditionProvider.equality(winner, SystemConstants.NULL));
 

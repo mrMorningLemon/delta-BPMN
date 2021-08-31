@@ -69,7 +69,7 @@ class TermProcessor {
             return false;
         }
         try {
-            double d = Integer.parseInt(el);
+            Integer.parseInt(el);
         } catch (NumberFormatException e) {
             return false;
         }

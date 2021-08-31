@@ -59,7 +59,9 @@ class DABRepositoryRelation implements RepositoryRelation {
 
 
     @Override
-    public int getAttributesIndex(Attribute attr){return this.attributes.indexOf(attr);}
+    public int getAttributesIndex(Attribute attr) {
+        return this.attributes.indexOf(attr);
+    }
 
     @Override
     /**
@@ -92,16 +94,6 @@ class DABRepositoryRelation implements RepositoryRelation {
         return this.attributes.size();
     }
 
-    @Override
-    public String toString() {
-        String result = this.name +
-                "(" + this.attributes.
-                stream().
-                map(Attribute::toString).
-                collect(Collectors.joining(","))
-                + ")";
-        return result;
-    }
 
     /**
      * Generates an MCMT declaration.
@@ -131,12 +123,41 @@ class DABRepositoryRelation implements RepositoryRelation {
         int attr_num = 1;
 
         for (Attribute attr : attributes) {
-            result += "(= " + this.name + attr_num + "[x] " + SystemConstants.NULL.getName() + "_"  + attr.getSort().getSortName() + ") ";
+            result += "(= " + this.name + attr_num + "[x] " + SystemConstants.NULL.getName() + "_" + attr.getSort().getSortName() + ") ";
             attr_num++;
         }
 //        for (DABAttribute attr : attributes)
 //            result += "(= " + this.name + '_' + attr.getName() + "[x] NULL_" + attr.getSort().getName() + ") ";
         return result;
+    }
+
+    @Override
+    public String toString() {
+        String result = this.name +
+                "(" + this.attributes.
+                stream().
+                map(Attribute::toString).
+                collect(Collectors.joining(","))
+                + ")";
+        return result;
+    }
+
+    @Override
+    public int hashCode() {
+        int result = name.hashCode();
+        for (Attribute attr : this.attributes)
+            result = 31 * result + attr.hashCode();
+        return result;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (!(o instanceof DABRepositoryRelation))
+            return false;
+        DABRepositoryRelation obj = (DABRepositoryRelation) o;
+        return name.equals(obj.name) && this.attributes.equals(obj.attributes);
     }
 
 }

@@ -45,7 +45,7 @@ public class EmptyBlock implements Block {
     @Override
     public String getMCMTTranslation() throws InvalidInputException, UnmatchingSortException, EevarOverflowException {
         String result = "";
-        this.effect.addTaskGuard("(= " + this.lifeCycle.getName() + " Enabled)");
+        this.effect.addTaskGuard("(= " + this.lifeCycle.getName() + " " + State.ENABLED.getName() + ")");
         this.effect.setControlCaseVariableValue(this.lifeCycle, State.COMPLETED);
         result += this.effect.getMCMTTranslation();
         return result;

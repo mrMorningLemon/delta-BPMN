@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<semantic:definitions xmlns:semantic="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:trisobpmn="http://www.trisotech.com/2014/triso/bpmn" xmlns:triso="http://www.trisotech.com/2015/triso/modeling" xmlns:trisofeed="http://trisotech.com/feed" xmlns:bpsim="http://www.bpsim.org/schemas/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:rss="http://purl.org/rss/2.0/" xmlns="http://www.trisotech.com/definitions/_1363713259771" id="_1363713259771" name="Mortgage Approval" targetNamespace="http://www.trisotech.com/definitions/_1363713259771" exporter="Camunda Modeler" exporterVersion="3.5.0" trisobpmn:logoChoice="Default">
+<semantic:definitions xmlns:semantic="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:trisobpmn="http://www.trisotech.com/2014/triso/bpmn" xmlns:triso="http://www.trisotech.com/2015/triso/modeling" xmlns:trisofeed="http://trisotech.com/feed" xmlns:bpsim="http://www.bpsim.org/schemas/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" xmlns:rss="http://purl.org/rss/2.0/" xmlns="http://www.trisotech.com/definitions/_1363713259771" id="_1363713259771" name="Mortgage Approval" targetNamespace="http://www.trisotech.com/definitions/_1363713259771" exporter="Camunda Modeler" exporterVersion="4.3.0" trisobpmn:logoChoice="Default">
   <semantic:process id="MortgageApproval" name="Mortgage Approval (data-aware)" isExecutable="false" triso:defaultName="true">
     <semantic:extensionElements>
       <camunda:properties>
-        <camunda:property name="verify" value="#status = OfferMade" />
+        <camunda:property name="verify" value="#status = Archived AND lifecycleMortgage = Completed" />
       </camunda:properties>
     </semantic:extensionElements>
     <semantic:laneSet />
@@ -23,7 +23,7 @@ BankAccount(BAid : BankAccountID, CBA :  CustomerID, Deposit : Num, StatusBank :
 MortgageType(Mid : MortgageTypeID, Name : String, Amount : Num, Duration : Num, Interest : Num);</semantic:documentation>
     </semantic:dataStoreReference>
     <semantic:dataStoreReference id="RepositoryID" name="Repository">
-      <semantic:documentation>Info(Bank : BankAccountID, StatusBank : String, Liability : String);
+      <semantic:documentation>Info(Bank : BankAccountID, StatusB : String, Liability : String);
 Archive(C  : CustomerID);</semantic:documentation>
     </semantic:dataStoreReference>
     <semantic:dataObjectReference id="ProcessVariablesID" name="Process variables" dataObjectRef="DataObject_0p4zx9u">
@@ -32,10 +32,11 @@ Archive(C  : CustomerID);</semantic:documentation>
 #duration : Num;
 #amount : Num;
 #status : String; 
+#statusInfo : String;
 #bid : BankAccountID;
 #bankAmount : Num;
 #maxAmount : Num;
-#maxLength : Num;
+#length : Num;
 #liability : String;</semantic:documentation>
     </semantic:dataObjectReference>
     <semantic:dataObject id="DataObject_0p4zx9u" />
@@ -53,7 +54,7 @@ Archive(C  : CustomerID);</semantic:documentation>
     <semantic:task id="CompleteApplication" name="Process Complete Application">
       <semantic:extensionElements>
         <camunda:properties>
-          <camunda:property name="pre" value="SELECT Mid FROM MortgageType  WHERE #status = FillApplication AND e &#62; 0 AND g &#62; 0" />
+          <camunda:property name="pre" value="SELECT Mid FROM MortgageType  WHERE #status = FillApplication AND e != NULL AND g != NULL" />
           <camunda:property name="var" value="e : Num" />
           <camunda:property name="var" value="g : Num" />
           <camunda:property name="eff" value="#status = CompletedApplication" />
@@ -98,7 +99,7 @@ Archive(C  : CustomerID);</semantic:documentation>
         <camunda:properties>
           <camunda:property name="pre" value="SELECT BAid, CBA, StatusBank FROM BankAccount WHERE #cid = CBA AND #status = CompletedApplication" />
           <camunda:property name="var" value="f: String" />
-          <camunda:property name="eff" value="#status = f" />
+          <camunda:property name="eff" value="#statusInfo = f" />
           <camunda:property name="eff" value="INSERT BAid, StatusBank, NULL INTO Info" />
         </camunda:properties>
       </semantic:extensionElements>
@@ -108,8 +109,8 @@ Archive(C  : CustomerID);</semantic:documentation>
     <semantic:task id="SelectEligibleAcc" name="Select Eligible Account">
       <semantic:extensionElements>
         <camunda:properties>
-          <camunda:property name="pre" value="SELECT Bank, StatusBank, Liability FROM Info WHERE #status = AssessmentMade" />
-          <camunda:property name="eff" value="DELETE Bank, StatusBank, Liability FROM Info" />
+          <camunda:property name="pre" value="SELECT Bank, StatusB, Liability FROM Info WHERE #status = AssessmentMade" />
+          <camunda:property name="eff" value="DELETE Bank, StatusB, Liability FROM Info" />
           <camunda:property name="eff" value="#bid = Bank" />
           <camunda:property name="eff" value="#liability = Liability" />
         </camunda:properties>
@@ -127,7 +128,7 @@ Archive(C  : CustomerID);</semantic:documentation>
     <semantic:exclusiveGateway id="LoopXOR2">
       <semantic:extensionElements>
         <camunda:properties>
-          <camunda:property name="cond" value="#status = InfoProvided" />
+          <camunda:property name="cond" value="#statusInfo = InfoProvided" />
         </camunda:properties>
       </semantic:extensionElements>
       <semantic:incoming>Flow_0hnonrs</semantic:incoming>
@@ -150,7 +151,7 @@ Archive(C  : CustomerID);</semantic:documentation>
     <semantic:exclusiveGateway id="SplitXOR2">
       <semantic:extensionElements>
         <camunda:properties>
-          <camunda:property name="cond" value="#bankAmount &#62; #amount AND #amount &#60; #maxAmount AND #duration &#60; #maxLength" />
+          <camunda:property name="cond" value="#duration = #length" />
         </camunda:properties>
       </semantic:extensionElements>
       <semantic:incoming>Flow_0dlkpn6</semantic:incoming>
@@ -162,8 +163,8 @@ Archive(C  : CustomerID);</semantic:documentation>
     <semantic:task id="MakeAssessment" name="Make Assessment">
       <semantic:extensionElements>
         <camunda:properties>
-          <camunda:property name="pre" value="#status = InfoProvided" />
-          <camunda:property name="eff" value="UPDATE Info SET Info.Liability=@v4   WHERE CASE WHEN Info.StatusBank != fraud THEN @v4 = Yes ELSE @v4 = No" />
+          <camunda:property name="pre" value="#statusInfo = InfoProvided" />
+          <camunda:property name="eff" value="UPDATE Info SET Info.Liability=@v4   WHERE CASE WHEN Info.StatusB != fraud THEN @v4 = Yes ELSE @v4 = No" />
           <camunda:property name="eff" value="#status = AssessmentMade" />
         </camunda:properties>
       </semantic:extensionElements>
@@ -214,7 +215,7 @@ Archive(C  : CustomerID);</semantic:documentation>
     <semantic:exclusiveGateway id="XORPossibleCompletion">
       <semantic:extensionElements>
         <camunda:properties>
-          <camunda:property name="cond" value="#status = NotInterested" />
+          <camunda:property name="cond" value="#status != Archived" />
         </camunda:properties>
       </semantic:extensionElements>
       <semantic:incoming>SequenceFlow_1o3dfyf</semantic:incoming>
@@ -223,6 +224,11 @@ Archive(C  : CustomerID);</semantic:documentation>
     </semantic:exclusiveGateway>
     <semantic:sequenceFlow id="SequenceFlow_1o3dfyf" sourceRef="JoinXOR1" targetRef="XORPossibleCompletion" />
     <semantic:endEvent id="EndNotInterested" name="Client not interested">
+      <semantic:extensionElements>
+        <camunda:properties>
+          <camunda:property />
+        </camunda:properties>
+      </semantic:extensionElements>
       <semantic:incoming>SequenceFlow_13q13is</semantic:incoming>
     </semantic:endEvent>
     <semantic:sequenceFlow id="SequenceFlow_13q13is" sourceRef="XORPossibleCompletion" targetRef="EndNotInterested" />
@@ -232,7 +238,7 @@ Archive(C  : CustomerID);</semantic:documentation>
         <camunda:properties>
           <camunda:property name="pre" value="SELECT Mid, Amount, Duration, BAid, Deposit, Cid  FROM MortgageType, BankAccount, Customer  WHERE #tid = Mid AND #bid = BAid AND #cid = Cid AND #liability = Yes AND #status = AssessmentMade" />
           <camunda:property name="eff" value="#maxAmount = Amount" />
-          <camunda:property name="eff" value="#maxLength = Duration" />
+          <camunda:property name="eff" value="#length = Duration" />
           <camunda:property name="eff" value="#bankAmount = Deposit" />
           <camunda:property name="eff" value="#status = InfoExtracted" />
         </camunda:properties>
@@ -291,11 +297,13 @@ Archive(C  : CustomerID);</semantic:documentation>
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1pniq9l_di" bpmnElement="Flow_1pniq9l">
         <di:waypoint x="1640" y="235" />
-        <di:waypoint x="1640" y="260" />
+        <di:waypoint x="1640" y="300" />
+        <di:waypoint x="1710" y="300" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0wghi80_di" bpmnElement="Flow_0wghi80">
         <di:waypoint x="1640" y="185" />
-        <di:waypoint x="1640" y="160" />
+        <di:waypoint x="1640" y="120" />
+        <di:waypoint x="1710" y="120" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1vu6qsu_di" bpmnElement="Flow_1vu6qsu">
         <di:waypoint x="1260" y="210" />
@@ -333,18 +341,18 @@ Archive(C  : CustomerID);</semantic:documentation>
         <di:waypoint x="1075" y="210" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_0nmt5yj_di" bpmnElement="Flow_0nmt5yj">
-        <di:waypoint x="1690" y="310" />
-        <di:waypoint x="1760" y="310" />
-        <di:waypoint x="1760" y="235" />
+        <di:waypoint x="1810" y="310" />
+        <di:waypoint x="1880" y="310" />
+        <di:waypoint x="1880" y="235" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1koxvqd_di" bpmnElement="Flow_1koxvqd">
-        <di:waypoint x="1690" y="120" />
-        <di:waypoint x="1760" y="120" />
-        <di:waypoint x="1760" y="185" />
+        <di:waypoint x="1810" y="120" />
+        <di:waypoint x="1880" y="120" />
+        <di:waypoint x="1880" y="185" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNEdge id="Flow_1akfqt0_di" bpmnElement="Flow_1akfqt0">
-        <di:waypoint x="1785" y="210" />
-        <di:waypoint x="1822" y="210" />
+        <di:waypoint x="1905" y="210" />
+        <di:waypoint x="1942" y="210" />
       </bpmndi:BPMNEdge>
       <bpmndi:BPMNShape id="S1401821444475__f0257a8e-1aca-45ce-8d51-42e43d3c57f0" bpmnElement="SendOutAppForm" color:background-color="#ffffff" color:border-color="#000000">
         <dc:Bounds x="268" y="186" width="83" height="68" />
@@ -377,13 +385,13 @@ Archive(C  : CustomerID);</semantic:documentation>
         <dc:Bounds x="550" y="270" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1jmofj3_di" bpmnElement="MakeOffer">
-        <dc:Bounds x="1590" y="80" width="100" height="80" />
+        <dc:Bounds x="1710" y="80" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_0d34sus_di" bpmnElement="SendRejection">
-        <dc:Bounds x="1590" y="260" width="100" height="80" />
+        <dc:Bounds x="1710" y="260" width="100" height="80" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Gateway_1cwtjdi_di" bpmnElement="JoinXOR2" isMarkerVisible="true">
-        <dc:Bounds x="1735" y="185" width="50" height="50" />
+        <dc:Bounds x="1855" y="185" width="50" height="50" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="Activity_1gr7ko9_di" bpmnElement="ProvideAccInfo">
         <dc:Bounds x="940" y="170" width="100" height="80" />
@@ -425,7 +433,7 @@ Archive(C  : CustomerID);</semantic:documentation>
         </bpmndi:BPMNLabel>
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="EndEvent_0qb1nrx_di" bpmnElement="ProcessEND">
-        <dc:Bounds x="1822" y="192" width="36" height="36" />
+        <dc:Bounds x="1942" y="192" width="36" height="36" />
       </bpmndi:BPMNShape>
       <bpmndi:BPMNShape id="ExclusiveGateway_123jd99_di" bpmnElement="JoinXOR1" isMarkerVisible="true">
         <dc:Bounds x="675" y="185" width="50" height="50" />
