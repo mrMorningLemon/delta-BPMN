@@ -90,6 +90,6 @@ Then, every process block related to the given process schema should created by 
 
 
 ## Verifying DABs
-Verification of DABs is done in two steps. First, create a `DABProcessTranslator` object with a DAB process to verify and add to it a safety. The safety property has to be separately created as a `ConjunctiveSelectQuery`. Then call `generateMCMTTranslation()` of the `DABProcessTranslator` object, which will generate a `.txt` file with an MCMT translation of the DAB process. Note that all the MCMT translations are generated in the parent directory of the project.
+Verification of DABs is done in two steps. First, create a `DABProcessTranslator` object with a DAB process to verify and add to it a safety property. The safety property has to be separately created as a `ConjunctiveSelectQuery`. Then call `generateMCMTTranslation()` of the `DABProcessTranslator` object, which will produce a `.txt` file with an MCMT translation of the DAB process. Note that all the MCMT translations are generated in the parent directory of the project.
 
 MCMT is an SMT-based model checker that supports verification of infinite-state transition systems. It can be download here: http://users.mat.unimi.it/users/ghilardi/mcmt/. Consult MCMT's user manual for more details on the tool itself. Note that MCMT has to be linked to the SMT solver Yices 1. To run a file with an MCMT program, use the command line and type this: `./bin/mcmt [options] <filename>`.
